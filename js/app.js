@@ -11,6 +11,7 @@
     emptyList: $('empty-list'),
     search: $('search'),
     newNote: $('new-note'),
+    newNoteFab: $('new-note-fab'),
     placeholder: $('placeholder'),
     view: $('note-view'),
     back: $('back'),
@@ -102,6 +103,20 @@
     render();
   }
 
+  // Otwarcie notatki dodaje wpis do historii, dzięki czemu systemowy
+  // przycisk „wstecz” na telefonie wraca do listy zamiast zamykać aplikację.
+  function openNote(id) {
+    const state = { note: id };
+    if (history.state && history.state.note) history.replaceState(state, '');
+    else history.pushState(state, '');
+    select(id);
+  }
+
+  function closeNote() {
+    if (history.state && history.state.note) history.back();
+    else select(null);
+  }
+
   function scheduleSave() {
     clearTimeout(saveTimer);
     els.status.textContent = 'Zapisywanie…';
@@ -178,29 +193,32 @@
 
   // --- Zdarzenia ---
 
-  els.newNote.addEventListener('click', () => {
+  function newNote() {
     const note = store.create();
     els.search.value = '';
-    select(note.id);
+    openNote(note.id);
     els.title.focus();
-  });
+  }
+
+  els.newNote.addEventListener('click', newNote);
+  els.newNoteFab.addEventListener('click', newNote);
 
   els.list.addEventListener('click', (e) => {
     const item = e.target.closest('.note-item');
-    if (item) select(item.dataset.id);
+    if (item) openNote(item.dataset.id);
   });
   els.list.addEventListener('keydown', (e) => {
     const item = e.target.closest('.note-item');
     if (item && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      select(item.dataset.id);
+      openNote(item.dataset.id);
     }
   });
 
   els.search.addEventListener('input', renderList);
   els.title.addEventListener('input', scheduleSave);
   els.content.addEventListener('input', scheduleSave);
-  els.back.addEventListener('click', () => select(null));
+  els.back.addEventListener('click', closeNote);
   els.toggleLock.addEventListener('click', toggleLock);
 
   els.deleteNote.addEventListener('click', () => {
@@ -210,13 +228,30 @@
     clearTimeout(saveTimer);
     store.remove(selectedId);
     selectedId = null;
-    render();
+    closeNote();
   });
 
   els.form.addEventListener('submit', handleDialogSubmit);
   els.cancel.addEventListener('click', () => els.dialog.close());
 
+  window.addEventListener('popstate', (e) => {
+    if (els.dialog.open) els.dialog.close();
+    const id = e.state && e.state.note;
+    select(id && store.list().some((n) => n.id === id) ? id : null);
+  });
+
   window.addEventListener('beforeunload', flushSave);
+  // Na telefonie aplikacja jest często zamykana bez beforeunload – zapisz przy schowaniu.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushSave();
+  });
+
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // Po ponownym uruchomieniu zaczynamy od listy.
+  if (history.state && history.state.note) history.replaceState(null, '');
 
   render();
 })();
