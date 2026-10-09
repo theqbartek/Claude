@@ -50,6 +50,11 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
   - jedno dotknięcie blokuje notatkę – nie można jej wtedy edytować ani usunąć
   - odblokowanie: dotknij kłódki **3 razy** w krótkim odstępie (przycisk odlicza „Jeszcze 2×”, „Jeszcze 1×”)
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
+- **kosz** (ikona 🗑️ obok tytułu „Notatki”, z licznikiem):
+  - „Usuń” przenosi notatkę do kosza – nic nie jest kasowane od razu
+  - notatki leżą w koszu, dopóki sam ich nie usuniesz (nic nie znika automatycznie)
+  - zaznaczanie pojedynczych notatek albo „Zaznacz wszystkie”
+  - „Przywróć” lub „Usuń na zawsze” dla zaznaczonych, „Opróżnij kosz” dla wszystkich naraz
 - **historia edycji** osobno dla każdej notatki (przycisk 🕘):
   - każda sesja pisania to jedna wersja – nowa powstaje po wyjściu z notatki lub z aplikacji
   - po dotknięciu wersji widać zmiany: dodane wiersze na zielono, usunięte na czerwono, zmianę tytułu
