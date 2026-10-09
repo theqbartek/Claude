@@ -1,3 +1,6 @@
 android/.tools/
 android/build/
 node_modules/
+
+# Zrzuty ekranu z testów
+/*.png
