@@ -168,12 +168,10 @@
     if (unlockTaps >= UNLOCK_TAPS) {
       resetUnlockTaps();
       store.unlock(selectedId);
-      vibrate([30, 60, 30]);
       render();
       return;
     }
 
-    vibrate(15);
     tapTimer = setTimeout(() => {
       resetUnlockTaps();
       renderEditor();
