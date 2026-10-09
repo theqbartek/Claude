@@ -1,0 +1,364 @@
+:root {
+  --bg: #f6f6f4;
+  --panel: #ffffff;
+  --border: #e3e3df;
+  --text: #1f1f1d;
+  --muted: #73736d;
+  --accent: #2f6fde;
+  --accent-text: #ffffff;
+  --active: #e8effc;
+  --danger: #c93a3a;
+  --locked-bg: #fff6e0;
+  --locked-border: #f0d48a;
+  --locked-text: #7a5a00;
+  --add-bg: #e6f4ea;
+  --add-text: #1e6b34;
+  --del-bg: #fdecec;
+  --del-text: #a12b2b;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615;
+    --panel: #1f1f1e;
+    --border: #33332f;
+    --text: #ececea;
+    --muted: #9a9a93;
+    --accent: #5b8ff0;
+    --active: #24324d;
+    --danger: #e26363;
+    --locked-bg: #3a3020;
+    --locked-border: #6b5520;
+    --locked-text: #f0d48a;
+    --add-bg: #1d3324;
+    --add-text: #8fd6a3;
+    --del-bg: #3a1f1f;
+    --del-text: #f09a9a;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overscroll-behavior: none;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* --- Lista notatek --- */
+
+.sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  min-height: 0;
+  padding-top: var(--safe-top);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.sidebar-header h1 { font-size: 1.25rem; margin: 0; }
+
+.search {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* 16px zapobiega powiększaniu strony na iPhonie */
+}
+
+.list-wrap { flex: 1; overflow-y: auto; min-height: 0; padding: 0 8px 16px; }
+
+.note-list { list-style: none; margin: 0; padding: 0; }
+
+.note-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+.note-item:hover { background: var(--bg); }
+.note-item.active { background: var(--active); }
+.note-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.note-item-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lock-icon { margin-right: 6px; font-size: 0.85em; }
+
+.note-item-preview,
+.note-item-date {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-item-date { font-size: 0.75rem; margin-top: 2px; }
+
+.empty-list { color: var(--muted); text-align: center; padding: 48px 16px; line-height: 1.6; }
+
+.fab { display: none; }
+
+/* --- Edytor --- */
+
+.editor { display: flex; min-width: 0; min-height: 0; }
+
+.placeholder {
+  margin: auto;
+  color: var(--muted);
+  text-align: center;
+  padding: 16px;
+}
+
+.note-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: 16px 32px 24px;
+}
+.note-view[hidden] { display: none; }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.toolbar-actions { display: flex; gap: 8px; margin-left: auto; }
+.back { display: none; }
+
+.status { color: var(--muted); font-size: 0.8rem; margin: 8px 0 0; }
+
+.lock-banner {
+  background: var(--locked-bg);
+  border: 1px solid var(--locked-border);
+  color: var(--locked-text);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.title-input,
+.content-input {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  width: 100%;
+}
+.title-input { font-size: 1.75rem; font-weight: 700; padding: 4px 0 12px; }
+.content-input { flex: 1; resize: none; font-size: 1rem; line-height: 1.6; }
+
+.note-view.locked .title-input,
+.note-view.locked .content-input { color: var(--muted); }
+
+/* --- Przyciski --- */
+
+.btn {
+  font: inherit;
+  font-size: 0.9rem;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--bg); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+.btn-danger { color: var(--danger); }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn { touch-action: manipulation; } /* szybkie dotknięcia nie powiększają strony */
+
+/* Kłódka zablokowanej notatki i odliczanie dotknięć do odblokowania */
+#toggle-lock.is-locked {
+  background: var(--locked-bg);
+  border-color: var(--locked-border);
+  color: var(--locked-text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+#toggle-lock.counting { animation: lock-shake 0.25s; font-weight: 600; }
+@keyframes lock-shake {
+  25% { transform: translateX(-3px) rotate(-3deg); }
+  75% { transform: translateX(3px) rotate(3deg); }
+}
+
+/* --- Historia edycji --- */
+
+.history-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px 32px 24px;
+}
+.history-view[hidden] { display: none; }
+.history-back { color: var(--accent); font-size: 1.05rem; padding-left: 8px; }
+.history-heading { font-size: 1.15rem; margin: 0; }
+.history-note { color: var(--muted); font-size: 0.85rem; margin: 0 0 12px; }
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.version { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; background: var(--panel); }
+.version.open { border-color: var(--accent); }
+
+.version-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.version-main { flex: 1; min-width: 0; }
+.version-date { font-weight: 600; }
+.version-sub { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+.version-tag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--active);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.version-stats { font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stat-add { color: var(--add-text); }
+.stat-del { color: var(--del-text); margin-left: 4px; }
+
+.version-body { padding: 0 14px 14px; }
+.version-body[hidden] { display: none; }
+.diff-title { font-size: 0.85rem; margin-bottom: 8px; color: var(--muted); }
+.diff {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.diff-line { padding: 1px 10px 1px 26px; position: relative; white-space: pre-wrap; word-break: break-word; min-height: 1.5em; }
+.diff-line::before { position: absolute; left: 10px; color: var(--muted); }
+.diff-line.add { background: var(--add-bg); color: var(--add-text); }
+.diff-line.add::before { content: "+"; color: inherit; }
+.diff-line.del { background: var(--del-bg); color: var(--del-text); text-decoration: line-through; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); }
+.diff-line.del::before { content: "−"; color: inherit; }
+.diff-line.same { color: var(--muted); }
+.diff-gap { padding: 2px 10px; color: var(--muted); font-size: 0.75rem; background: var(--bg); }
+.diff-empty { padding: 8px 10px; color: var(--muted); font-style: italic; font-family: inherit; }
+.version-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 10px; }
+.version-actions .hint { color: var(--muted); font-size: 0.8rem; margin-right: auto; }
+
+/* --- Telefon --- */
+
+@media (max-width: 700px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; }
+  .editor { display: none; background: var(--panel); }
+  .app.show-editor .sidebar { display: none; }
+  .app.show-editor .editor { display: flex; }
+
+  .sidebar-header { padding: 20px 16px 12px; }
+  .sidebar-header h1 { font-size: 2rem; }
+  .new-note-top { display: none; }
+
+  .list-wrap { padding: 0 0 calc(96px + var(--safe-bottom)); }
+  .note-item {
+    border-radius: 0;
+    margin: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .note-item.active { background: transparent; }
+  .note-item:active { background: var(--bg); }
+  .note-item-title { font-size: 1.05rem; }
+  .note-item-preview { font-size: 0.9rem; margin-top: 2px; }
+
+  .fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 20px;
+    bottom: calc(20px + var(--safe-bottom));
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 2rem;
+    line-height: 1;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+    cursor: pointer;
+  }
+  .fab:active { transform: scale(0.95); }
+
+  .note-view {
+    padding: calc(8px + var(--safe-top)) 16px calc(12px + var(--safe-bottom));
+  }
+  .toolbar { margin: 0 -8px 8px; gap: 4px; }
+  .back {
+    display: inline-block;
+    color: var(--accent);
+    font-size: 1.05rem;
+    padding-left: 8px;
+  }
+  .toolbar-actions .btn { min-height: 44px; }
+  .btn-label { display: none; } /* na telefonie sama ikona historii */
+  .history-view { padding: calc(8px + var(--safe-top)) 16px calc(12px + var(--safe-bottom)); background: var(--panel); }
+  .history-view .toolbar { margin: 0 -8px 8px; }
+  .version-actions .btn { min-height: 44px; }
+  .title-input { font-size: 1.6rem; }
+  .content-input { font-size: 1.05rem; } /* >= 16px, bez auto-zoomu na iPhonie */
+
+}

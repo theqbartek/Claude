@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Notatki</title>
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1f1f1e" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Notatki">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <header class="sidebar-header">
+        <h1>Notatki</h1>
+        <button class="btn btn-primary new-note-top" id="new-note" title="Nowa notatka">+ Nowa</button>
+      </header>
+      <input class="search" id="search" type="search" placeholder="Szukaj…" aria-label="Szukaj notatek">
+      <div class="list-wrap">
+        <ul class="note-list" id="note-list" aria-label="Lista notatek"></ul>
+        <p class="empty-list" id="empty-list" hidden>Brak notatek.<br>Dotknij „+”, aby dodać pierwszą.</p>
+      </div>
+      <button class="fab" id="new-note-fab" aria-label="Nowa notatka">+</button>
+    </aside>
+
+    <main class="editor" id="editor">
+      <div class="placeholder" id="placeholder">
+        <p>Wybierz notatkę z listy lub utwórz nową.</p>
+      </div>
+
+      <section class="note-view" id="note-view" hidden>
+        <div class="toolbar">
+          <button class="btn btn-ghost back" id="back" aria-label="Wróć do listy">‹ Notatki</button>
+          <div class="toolbar-actions">
+            <button class="btn" id="show-history" aria-label="Historia edycji" title="Historia edycji">🕘<span class="btn-label"> Historia</span></button>
+            <button class="btn" id="toggle-lock"></button>
+            <button class="btn btn-danger" id="delete-note" aria-label="Usuń notatkę">Usuń</button>
+          </div>
+        </div>
+        <div class="lock-banner" id="lock-banner" hidden>
+          🔒 Notatka zablokowana. Dotknij kłódki <strong>3 razy</strong>, aby odblokować.
+        </div>
+        <input class="title-input" id="title" type="text" placeholder="Tytuł" aria-label="Tytuł notatki" enterkeyhint="next">
+        <textarea class="content-input" id="content" placeholder="Zacznij pisać…" aria-label="Treść notatki"></textarea>
+        <p class="status" id="status"></p>
+      </section>
+
+      <section class="history-view" id="history-view" hidden>
+        <div class="toolbar">
+          <button class="btn btn-ghost history-back" id="history-back" aria-label="Wróć do notatki">‹ Notatka</button>
+          <h2 class="history-heading">Historia edycji</h2>
+        </div>
+        <p class="history-note" id="history-note"></p>
+        <ol class="history-list" id="history-list"></ol>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
