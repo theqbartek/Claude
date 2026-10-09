@@ -592,7 +592,6 @@
 
   const LONG_PRESS_MS = 500;
   let pressTimer = null;
-  let pressStart = null;
   let suppressClick = false; // kliknięcie po przytrzymaniu nie otwiera notatki
   let menuNoteId = null;
   let menuOpenedAt = 0;
@@ -661,36 +660,187 @@
     }
   }
 
-  function cancelPress() {
+  // --- Przytrzymanie: puszczenie bez ruchu otwiera menu, przesunięcie palcem przeciąga notatkę ---
+
+  let press = null; // { id, item, x, y, pointerType, armed }
+  let drag = null; // { id, item, rects, index, newIndex, startY, lastClientY, slot, raf }
+
+  function clearPress() {
     clearTimeout(pressTimer);
     pressTimer = null;
-    pressStart = null;
-    els.list.querySelectorAll('.pressing').forEach((el) => el.classList.remove('pressing'));
+    if (press) press.item.classList.remove('pressing', 'armed');
+    press = null;
+  }
+
+  // Przy wyszukiwaniu lista pokazuje tylko część notatek, więc kolejności nie zmieniamy.
+  function canReorder() {
+    return !els.search.value.trim();
+  }
+
+  function listWrap() {
+    return els.list.parentElement;
+  }
+
+  // Pozycja palca we współrzędnych przewijanej listy.
+  function contentY(clientY) {
+    const wrap = listWrap();
+    return clientY - wrap.getBoundingClientRect().top + wrap.scrollTop;
+  }
+
+  function startDrag(clientY) {
+    const item = press.item;
+    const pinned = item.classList.contains('pinned');
+    // Przeciągać można tylko w obrębie swojej grupy – przypięte zawsze zostają na górze.
+    const group = [...els.list.querySelectorAll('.note-item')].filter((el) => el.classList.contains('pinned') === pinned);
+    const rects = group.map((el) => ({ el, id: el.dataset.id, top: el.offsetTop, height: el.offsetHeight }));
+    const index = group.indexOf(item);
+    const gap = parseFloat(getComputedStyle(item).marginBottom) || 0;
+    drag = {
+      id: press.id,
+      item,
+      rects,
+      index,
+      newIndex: index,
+      startY: contentY(press.y), // od miejsca dotknięcia, żeby nie zgubić początku ruchu
+      lastClientY: clientY,
+      slot: item.offsetHeight + gap,
+      raf: 0,
+    };
+    clearPress();
+    item.classList.add('dragging');
+    moveDrag(clientY);
+    els.list.classList.add('reordering');
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+
+  function moveDrag(clientY) {
+    drag.lastClientY = clientY;
+    const self = drag.rects[drag.index];
+    const first = drag.rects[0];
+    const last = drag.rects[drag.rects.length - 1];
+    let dy = contentY(clientY) - drag.startY;
+    dy = Math.max(first.top - self.top, Math.min(last.top + last.height - (self.top + self.height), dy));
+    drag.item.style.transform = `translateY(${dy}px)`;
+
+    const center = self.top + self.height / 2 + dy;
+    let newIndex = drag.index;
+    drag.rects.forEach((other, i) => {
+      if (i === drag.index) return;
+      const mid = other.top + other.height / 2;
+      let shift = 0;
+      // >= i <=: przy dosunięciu do krawędzi grupy notatka zamienia się też ze skrajną.
+      if (i > drag.index && center >= mid) {
+        shift = -drag.slot;
+        newIndex++;
+      } else if (i < drag.index && center <= mid) {
+        shift = drag.slot;
+        newIndex--;
+      }
+      other.el.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
+    drag.newIndex = newIndex;
+  }
+
+  function endDrag() {
+    cancelAnimationFrame(drag.raf);
+    const { id, index, newIndex, rects, item } = drag;
+    rects.forEach((other) => {
+      other.el.style.transform = '';
+    });
+    item.classList.remove('dragging');
+    els.list.classList.remove('reordering');
+    drag = null;
+    if (newIndex !== index) {
+      const order = rects.map((other) => other.id).filter((otherId) => otherId !== id);
+      order.splice(newIndex, 0, id);
+      store.reorder(order);
+      renderList();
+    }
+  }
+
+  // Przy krawędzi listy przewija ją, żeby dało się przeciągnąć notatkę dalej.
+  function autoScroll() {
+    if (!drag) return;
+    const wrap = listWrap();
+    const box = wrap.getBoundingClientRect();
+    const edge = 56;
+    const y = drag.lastClientY;
+    let step = 0;
+    if (y < box.top + edge) step = -Math.ceil((box.top + edge - y) / 6);
+    else if (y > box.bottom - edge) step = Math.ceil((y - (box.bottom - edge)) / 6);
+    if (step) {
+      const before = wrap.scrollTop;
+      wrap.scrollTop += step;
+      if (wrap.scrollTop !== before) moveDrag(y);
+    }
+    drag.raf = requestAnimationFrame(autoScroll);
   }
 
   els.list.addEventListener('pointerdown', (e) => {
     const item = e.target.closest('.note-item');
     suppressClick = false;
-    if (!item || e.button > 0) return;
-    pressStart = { x: e.clientX, y: e.clientY };
+    if (!item || e.button > 0 || drag) return;
+    press = { id: item.dataset.id, item, x: e.clientX, y: e.clientY, pointerType: e.pointerType, armed: false };
     item.classList.add('pressing');
     pressTimer = setTimeout(() => {
-      cancelPress();
+      if (!press) return;
+      press.armed = true;
       suppressClick = true;
-      openNoteMenu(item.dataset.id);
+      press.item.classList.add('armed');
     }, LONG_PRESS_MS);
   });
-  els.list.addEventListener('pointermove', (e) => {
-    if (pressStart && Math.hypot(e.clientX - pressStart.x, e.clientY - pressStart.y) > 10) cancelPress();
+
+  window.addEventListener('pointermove', (e) => {
+    if (drag) {
+      moveDrag(e.clientY);
+      return;
+    }
+    if (!press) return;
+    const dist = Math.hypot(e.clientX - press.x, e.clientY - press.y);
+    if (!press.armed) {
+      if (dist > 10) clearPress(); // zwykłe przewijanie listy
+    } else if (dist > 8 && canReorder()) {
+      startDrag(e.clientY);
+    }
   });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => els.list.addEventListener(type, cancelPress));
-  els.list.parentElement.addEventListener('scroll', cancelPress, { passive: true });
-  // Prawy przycisk myszy, klawisz menu i długie przytrzymanie w niektórych przeglądarkach.
+
+  function releasePress() {
+    if (drag) {
+      endDrag();
+    } else if (press && press.armed) {
+      const id = press.id;
+      clearPress();
+      openNoteMenu(id);
+    } else {
+      clearPress();
+    }
+  }
+  window.addEventListener('pointerup', releasePress);
+  window.addEventListener('pointercancel', releasePress);
+
+  // Po przytrzymaniu przeglądarka nie może przewijać listy, bo przerwałaby przeciąganie.
+  els.list.addEventListener(
+    'touchmove',
+    (e) => {
+      if ((press && press.armed) || drag) e.preventDefault();
+    },
+    { passive: false }
+  );
+  listWrap().addEventListener(
+    'scroll',
+    () => {
+      if (press && !press.armed) clearPress();
+    },
+    { passive: true }
+  );
+
+  // Prawy przycisk myszy i klawisz menu. Przy dotyku menu otwiera się dopiero po puszczeniu palca.
   els.list.addEventListener('contextmenu', (e) => {
     const item = e.target.closest('.note-item');
     if (!item) return;
     e.preventDefault();
-    cancelPress();
+    if (press && press.pointerType !== 'mouse') return;
+    clearPress();
     suppressClick = true;
     if (els.noteMenu.hidden) openNoteMenu(item.dataset.id);
   });
@@ -720,6 +870,21 @@
     if (item && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       openNote(item.dataset.id);
+    }
+    // Alt + strzałka w górę/dół przesuwa notatkę w obrębie jej grupy.
+    if (item && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && canReorder()) {
+      e.preventDefault();
+      const pinned = item.classList.contains('pinned');
+      const group = [...els.list.querySelectorAll('.note-item')].filter((el) => el.classList.contains('pinned') === pinned);
+      const order = group.map((el) => el.dataset.id);
+      const from = order.indexOf(item.dataset.id);
+      const to = from + (e.key === 'ArrowUp' ? -1 : 1);
+      if (to < 0 || to >= order.length) return;
+      order.splice(to, 0, order.splice(from, 1)[0]);
+      store.reorder(order);
+      renderList();
+      const moved = els.list.querySelector(`.note-item[data-id="${item.dataset.id}"]`);
+      if (moved) moved.focus();
     }
   });
 

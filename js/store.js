@@ -65,6 +65,7 @@
 
   function createStore(storage, now = () => Date.now()) {
     let notes = load();
+    assignMissingPositions();
 
     function load() {
       try {
@@ -73,6 +74,35 @@
       } catch {
         return [];
       }
+    }
+
+    // Kolejność na liście: najpierw przypięte, potem pozostałe; w każdej grupie według `position`
+    // (mniejsza = wyżej). Kolejność ustawia użytkownik – edycja jej nie zmienia.
+    function byListOrder(a, b) {
+      if (Boolean(a.pinnedAt) !== Boolean(b.pinnedAt)) return a.pinnedAt ? -1 : 1;
+      return a.position - b.position;
+    }
+
+    // Notatki sprzed ręcznej kolejności dostają pozycje zgodne z dawnym sortowaniem.
+    function assignMissingPositions() {
+      if (notes.every((n) => typeof n.position === 'number')) return;
+      notes
+        .slice()
+        .sort((a, b) => {
+          if (Boolean(a.pinnedAt) !== Boolean(b.pinnedAt)) return a.pinnedAt ? -1 : 1;
+          if (a.pinnedAt) return b.pinnedAt - a.pinnedAt;
+          return b.updatedAt - a.updatedAt;
+        })
+        .forEach((n, i) => {
+          n.position = i;
+        });
+      save();
+    }
+
+    // Pozycja na samej górze grupy (przypiętych albo pozostałych).
+    function topPosition(pinned) {
+      const group = notes.filter((n) => Boolean(n.pinnedAt) === pinned && typeof n.position === 'number');
+      return group.length ? Math.min(...group.map((n) => n.position)) - 1 : 0;
     }
 
     function save() {
@@ -123,32 +153,49 @@
 
     return {
       // Notatki posortowane od ostatnio zmienionej.
-      // Notatki poza koszem: najpierw przypięte (ostatnio przypięta na górze),
-      // potem pozostałe od ostatnio zmienionej.
+      // Notatki poza koszem w kolejności listy: przypięte, potem pozostałe.
       list() {
         return notes
           .filter((n) => !n.trashedAt)
-          .sort((a, b) => {
-            if (Boolean(a.pinnedAt) !== Boolean(b.pinnedAt)) return a.pinnedAt ? -1 : 1;
-            if (a.pinnedAt) return b.pinnedAt - a.pinnedAt;
-            return b.updatedAt - a.updatedAt;
-          })
+          .sort(byListOrder)
           .map(clone);
       },
 
       // Przypięcie nie zmienia treści, więc działa też dla zablokowanych notatek.
+      // Świeżo przypięta notatka trafia na górę przypiętych.
       pin(id) {
         const note = find(id);
+        if (note.pinnedAt) return clone(note);
+        note.position = topPosition(true);
         note.pinnedAt = now();
         save();
         return clone(note);
       },
 
+      // Odpięta notatka trafia na górę pozostałych.
       unpin(id) {
         const note = find(id);
+        if (!note.pinnedAt) return clone(note);
         delete note.pinnedAt;
+        note.position = topPosition(false);
         save();
         return clone(note);
+      },
+
+      // Ustawia kolejność jednej grupy (wszystkie przypięte albo wszystkie pozostałe).
+      // Notatki z dwóch grup naraz są odrzucane – przypięte zawsze zostają na górze.
+      reorder(ids) {
+        const group = ids.map(find);
+        if (!group.length) return;
+        const pinned = Boolean(group[0].pinnedAt);
+        if (group.some((n) => Boolean(n.pinnedAt) !== pinned)) {
+          throw new Error('Przypiętych i pozostałych notatek nie można mieszać.');
+        }
+        const slots = group.map((n) => n.position).sort((a, b) => a - b);
+        group.forEach((n, i) => {
+          n.position = slots[i];
+        });
+        save();
       },
 
       // Notatki w koszu, od ostatnio usuniętej. Leżą tam, dopóki użytkownik sam ich nie usunie.
@@ -173,6 +220,7 @@
           createdAt: ts,
           updatedAt: ts,
           versions: title || content ? [{ ts, title, content, sealed: true }] : [],
+          position: topPosition(false),
         };
         notes.push(note);
         save();

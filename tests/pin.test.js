@@ -41,13 +41,15 @@ test('ostatnio przypięta jest najwyżej, a edycja nie zmienia kolejności przyp
   assert.deepEqual(titles(store), ['B', 'A', 'C']);
 });
 
-test('odpięcie wraca notatkę do zwykłej kolejności', () => {
+test('odpięta notatka trafia na górę pozostałych', () => {
   const { store } = setup();
   const a = store.create({ title: 'A' });
   store.create({ title: 'B' });
+  store.create({ title: 'C' });
   store.pin(a.id);
+  assert.deepEqual(titles(store), ['A', 'C', 'B']);
   store.unpin(a.id);
-  assert.deepEqual(titles(store), ['B', 'A']);
+  assert.deepEqual(titles(store), ['A', 'C', 'B']);
   assert.ok(!store.get(a.id).pinnedAt);
 });
 
@@ -59,7 +61,8 @@ test('zablokowaną notatkę można przypiąć i odpiąć', () => {
   store.pin(a.id);
   assert.deepEqual(titles(store), ['A', 'B']);
   store.unpin(a.id);
-  assert.deepEqual(titles(store), ['B', 'A']);
+  assert.deepEqual(titles(store), ['A', 'B']);
+  assert.ok(!store.get(a.id).pinnedAt);
 });
 
 test('przypięcie nie zmienia daty edycji ani historii', () => {
