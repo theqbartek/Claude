@@ -170,7 +170,6 @@ body {
 .sheet-btn:hover:not(:disabled), .sheet-btn:focus-visible { background: var(--bg); outline: none; }
 .sheet-btn.danger { color: var(--danger); }
 .sheet-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.sheet-btn[data-action="cancel"] { color: var(--muted); text-align: center; border-top: 1px solid var(--border); border-radius: 0; margin-top: 4px; }
 .sheet-hint { margin: 2px 12px 6px; font-size: 0.85rem; color: var(--locked-text); background: var(--locked-bg); border-radius: 10px; padding: 8px 10px; }
 
 .toast {
@@ -569,7 +568,6 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-colo
 .sheet-btn:hover:not(:disabled), .sheet-btn:focus-visible { background: var(--bg); outline: none; }
 .sheet-btn.danger { color: var(--danger); }
 .sheet-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.sheet-btn[data-action="cancel"] { color: var(--muted); text-align: center; border-top: 1px solid var(--border); border-radius: 0; margin-top: 4px; }
 .sheet-hint { margin: 2px 12px 6px; font-size: 0.85rem; color: var(--locked-text); background: var(--locked-bg); border-radius: 10px; padding: 8px 10px; }
 
 .toast {
