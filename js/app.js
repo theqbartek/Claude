@@ -40,19 +40,63 @@
     trashEmpty: $('trash-empty'),
     trashFooter: $('trash-footer'),
     trashEmptyAll: $('trash-empty-all'),
+    addCreds: $('add-creds'),
+    creds: $('creds'),
+    credsLock: $('creds-lock'),
+    login: $('cred-login'),
+    password: $('cred-password'),
+    pwEye: $('pw-eye'),
+    credsHint: $('creds-hint'),
+    credsRemove: $('creds-remove'),
+    copyButtons: document.querySelectorAll('.copy-btn'),
   };
 
   // Odblokowanie wymaga kilku szybkich dotknięć kłódki – chroni przed przypadkowym odblokowaniem.
   const UNLOCK_TAPS = 3;
   const TAP_WINDOW_MS = 1500;
 
+  // Licznik szybkich dotknięć dla jednej kłódki (osobny dla notatki i dla loginu z hasłem).
+  function createTapCounter() {
+    const counter = {
+      taps: 0,
+      timer: null,
+      reset() {
+        clearTimeout(counter.timer);
+        counter.timer = null;
+        counter.taps = 0;
+      },
+      // Zwraca true, gdy dotknięto UNLOCK_TAPS razy; po przerwie liczenie zaczyna się od nowa.
+      tap(onTimeout) {
+        counter.taps++;
+        clearTimeout(counter.timer);
+        if (counter.taps >= UNLOCK_TAPS) {
+          counter.reset();
+          return true;
+        }
+        counter.timer = setTimeout(() => {
+          counter.reset();
+          onTimeout();
+        }, TAP_WINDOW_MS);
+        return false;
+      },
+    };
+    return counter;
+  }
+
+  const noteTaps = createTapCounter();
+  const credsTaps = createTapCounter();
+
+  function lockLabel(locked, counter, lockedText) {
+    if (!locked) return '🔓 Zablokuj';
+    return counter.taps > 0 ? `🔒 Jeszcze ${UNLOCK_TAPS - counter.taps}×` : lockedText;
+  }
+
   let selectedId = null;
   let saveTimer = null;
-  let unlockTaps = 0;
+  let passwordRevealed = false; // czy hasło jest odsłonięte (ikona 👁)
   let historyOpen = false;
   let openVersion = null; // indeks rozwiniętej wersji w historii
   let statusMessage = null; // jednorazowy komunikat zamiast daty zmiany
-  let tapTimer = null;
   let trashOpen = false;
   const trashSelected = new Set(); // id zaznaczonych notatek w koszu
 
@@ -65,7 +109,11 @@
   function renderList() {
     const q = els.search.value.trim().toLowerCase();
     const notes = store.list().filter(
-      (n) => !q || n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
+      (n) =>
+        !q ||
+        n.title.toLowerCase().includes(q) ||
+        n.content.toLowerCase().includes(q) ||
+        (n.login || '').toLowerCase().includes(q)
     );
 
     els.list.innerHTML = notes
@@ -74,7 +122,7 @@
         const preview = n.content.trim().split('\n')[0] || 'Brak treści';
         return `
           <li class="note-item${n.id === selectedId ? ' active' : ''}" data-id="${n.id}" tabindex="0">
-            <div class="note-item-title">${n.locked ? '<span class="lock-icon" title="Zablokowana">🔒</span>' : ''}${escapeHtml(title)}</div>
+            <div class="note-item-title">${n.locked ? '<span class="lock-icon" title="Zablokowana">🔒</span>' : ''}${n.login || n.password ? '<span class="lock-icon" title="Zawiera login i hasło">🔑</span>' : ''}${escapeHtml(title)}</div>
             <div class="note-item-preview">${escapeHtml(preview)}</div>
             <div class="note-item-date">${dateFmt.format(n.updatedAt)}</div>
           </li>`;
@@ -102,8 +150,10 @@
       return;
     }
 
-    if (document.activeElement !== els.title) els.title.value = note.title;
-    if (document.activeElement !== els.content) els.content.value = note.content;
+    // Pola z niezapisanymi zmianami (czeka autozapis) mają nowszą treść niż zapisana notatka.
+    const pending = saveTimer !== null;
+    if (!pending && document.activeElement !== els.title) els.title.value = note.title;
+    if (!pending && document.activeElement !== els.content) els.content.value = note.content;
 
     els.title.readOnly = note.locked;
     els.content.readOnly = note.locked;
@@ -112,16 +162,51 @@
     els.deleteNote.disabled = note.locked;
     els.deleteNote.title = note.locked ? 'Odblokuj notatkę, aby ją usunąć' : 'Usuń notatkę';
     els.toggleLock.classList.toggle('is-locked', note.locked);
-    els.toggleLock.classList.toggle('counting', unlockTaps > 0);
-    els.toggleLock.textContent = !note.locked
-      ? '🔓 Zablokuj'
-      : unlockTaps > 0
-        ? `🔒 Jeszcze ${UNLOCK_TAPS - unlockTaps}×`
-        : '🔒 Zablokowana';
+    els.toggleLock.classList.toggle('counting', noteTaps.taps > 0);
+    els.toggleLock.textContent = lockLabel(note.locked, noteTaps, '🔒 Zablokowana');
     els.toggleLock.title = note.locked
       ? `Dotknij ${UNLOCK_TAPS} razy, aby odblokować`
       : 'Zablokuj możliwość edycji';
     els.status.textContent = statusMessage || 'Zmieniono: ' + dateFmt.format(note.updatedAt);
+    renderCredentials(note);
+  }
+
+  function renderCredentials(note) {
+    els.addCreds.hidden = note.hasCredentials || note.locked;
+    els.creds.hidden = !note.hasCredentials;
+    if (!note.hasCredentials) return;
+
+    const readOnly = note.locked || Boolean(note.credentialsLocked);
+    const pending = saveTimer !== null;
+    if (!pending && document.activeElement !== els.login) els.login.value = note.login || '';
+    if (!pending && document.activeElement !== els.password) els.password.value = note.password || '';
+    els.login.readOnly = readOnly;
+    els.password.readOnly = readOnly;
+
+    // Mgła na haśle: znika podczas pisania albo po dotknięciu 👁.
+    const editingPassword = document.activeElement === els.password && !readOnly;
+    const hasPassword = els.password.value !== '';
+    els.password.classList.toggle('fogged', hasPassword && !passwordRevealed && !editingPassword);
+    els.pwEye.hidden = !hasPassword;
+    els.pwEye.classList.toggle('on', passwordRevealed);
+    els.pwEye.setAttribute('aria-label', passwordRevealed ? 'Ukryj hasło' : 'Pokaż hasło');
+
+    els.copyButtons.forEach((btn) => {
+      if (btn.classList.contains('copied')) return;
+      btn.hidden = (btn.dataset.copy === 'login' ? els.login.value : els.password.value) === '';
+    });
+
+    const locked = Boolean(note.credentialsLocked);
+    els.credsLock.classList.toggle('is-locked', locked);
+    els.credsLock.classList.toggle('counting', credsTaps.taps > 0);
+    els.credsLock.textContent = lockLabel(locked, credsTaps, '🔒 Zablokowane');
+    els.credsLock.title = locked ? `Dotknij ${UNLOCK_TAPS} razy, aby odblokować` : 'Zablokuj login i hasło';
+    els.credsHint.textContent = locked
+      ? `Dotknij kłódki ${UNLOCK_TAPS} razy, aby edytować`
+      : note.locked
+        ? 'Notatka jest zablokowana'
+        : '';
+    els.credsRemove.hidden = readOnly;
   }
 
   // Odmiana: „1 notatkę”, „2 notatki”, „5 notatek”.
@@ -205,7 +290,9 @@
 
   function select(id) {
     flushSave();
-    resetUnlockTaps();
+    noteTaps.reset();
+    credsTaps.reset();
+    passwordRevealed = false;
     // Wyjście z notatki kończy sesję pisania – kolejne zmiany będą nową wersją w historii.
     if (selectedId && id !== selectedId) {
       store.sealHistory(selectedId);
@@ -216,6 +303,8 @@
     selectedId = id;
     els.title.blur();
     els.content.blur();
+    els.login.blur();
+    els.password.blur();
     render();
   }
 
@@ -246,8 +335,15 @@
     if (!selectedId) return;
     const note = store.get(selectedId);
     if (note.locked) return;
-    if (note.title === els.title.value && note.content === els.content.value) return;
-    store.update(selectedId, { title: els.title.value, content: els.content.value });
+    const changes = {};
+    if (note.title !== els.title.value) changes.title = els.title.value;
+    if (note.content !== els.content.value) changes.content = els.content.value;
+    if (note.hasCredentials && !note.credentialsLocked) {
+      if ((note.login || '') !== els.login.value) changes.login = els.login.value;
+      if ((note.password || '') !== els.password.value) changes.password = els.password.value;
+    }
+    if (!Object.keys(changes).length) return;
+    store.update(selectedId, changes);
     render();
   }
 
@@ -312,12 +408,15 @@
       const added = diff.filter((d) => d.type === 'add').length;
       const removed = diff.filter((d) => d.type === 'del').length;
       const titleChanged = prev ? prev.title !== v.title : false;
+      const loginChanged = prev ? (prev.login || '') !== (v.login || '') : Boolean(v.login);
+      const passwordChanged = prev ? (prev.password || '') !== (v.password || '') : Boolean(v.password);
       const open = openVersion === i;
 
       let sub = escapeHtml(v.title.trim() || 'Bez tytułu');
       if (i === 0) sub = 'Pierwsza wersja · ' + sub;
       else if (v.restoredFrom) sub = 'Przywrócono wersję z ' + dateFmt.format(v.restoredFrom);
       else if (titleChanged) sub = 'Zmieniono tytuł · ' + sub;
+      else if ((loginChanged || passwordChanged) && !added && !removed) sub = 'Zmieniono login lub hasło · ' + sub;
 
       html += `
         <li class="version${open ? ' open' : ''}" data-index="${i}">
@@ -331,7 +430,9 @@
           </button>
           <div class="version-body"${open ? '' : ' hidden'}>
             ${titleChanged ? `<div class="diff-title">Tytuł: <s>${escapeHtml(prev.title || 'Bez tytułu')}</s> → <strong>${escapeHtml(v.title || 'Bez tytułu')}</strong></div>` : ''}
-            ${open ? `<div class="diff">${renderDiff(diff)}</div>` : ''}
+            ${loginChanged ? `<div class="diff-title">🔑 Login: ${prev && prev.login ? `<s>${escapeHtml(prev.login)}</s> → ` : ''}<strong>${escapeHtml(v.login || '(pusty)')}</strong></div>` : ''}
+            ${passwordChanged ? `<div class="diff-title">🔑 Hasło: ${v.password ? (prev && prev.password ? 'zmienione' : 'dodane') : 'usunięte'} <span class="muted">(ukryte)</span></div>` : ''}
+            ${open && (added || removed || !(titleChanged || loginChanged || passwordChanged)) ? `<div class="diff">${renderDiff(diff)}</div>` : ''}
             ${i === lastIndex ? '' : `
             <div class="version-actions">
               ${note.locked ? '<span class="hint">Odblokuj notatkę, aby przywrócić</span>' : ''}
@@ -370,6 +471,8 @@
     clearTimeout(saveTimer);
     els.title.value = note.title;
     els.content.value = note.content;
+    els.login.value = note.login || '';
+    els.password.value = note.password || '';
     statusMessage = 'Przywrócono wersję z ' + dateFmt.format(version.ts);
     closeHistory();
     render();
@@ -379,12 +482,6 @@
 
   function vibrate(pattern) {
     if (navigator.vibrate) navigator.vibrate(pattern);
-  }
-
-  function resetUnlockTaps() {
-    clearTimeout(tapTimer);
-    tapTimer = null;
-    unlockTaps = 0;
   }
 
   // Zablokowanie: jedno dotknięcie. Odblokowanie: UNLOCK_TAPS dotknięć w krótkim odstępie.
@@ -399,20 +496,77 @@
       return;
     }
 
-    unlockTaps++;
-    clearTimeout(tapTimer);
-    if (unlockTaps >= UNLOCK_TAPS) {
-      resetUnlockTaps();
+    if (noteTaps.tap(renderEditor)) {
       store.unlock(selectedId);
       render();
       return;
     }
-
-    tapTimer = setTimeout(() => {
-      resetUnlockTaps();
-      renderEditor();
-    }, TAP_WINDOW_MS);
     renderEditor();
+  }
+
+  // Ta sama zasada dla loginu i hasła: jedno dotknięcie blokuje, trzy odblokowują.
+  function handleCredsLockTap() {
+    flushSave();
+    const note = store.get(selectedId);
+    if (!note.credentialsLocked) {
+      store.lockCredentials(selectedId);
+      els.login.blur();
+      els.password.blur();
+      vibrate(30);
+      renderEditor();
+      return;
+    }
+    if (credsTaps.tap(renderEditor)) store.unlockCredentials(selectedId);
+    renderEditor();
+  }
+
+  // --- Kopiowanie ---
+
+  function copyFallback(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+
+  async function copyText(text, sensitive) {
+    // W aplikacji Android kopiuje kod natywny – hasło jest oznaczane jako poufne
+    // i nie pokazuje się w podglądzie schowka.
+    if (window.NotatkiAndroid && window.NotatkiAndroid.copy) {
+      window.NotatkiAndroid.copy(text, sensitive);
+      return true;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return copyFallback(text);
+    }
+  }
+
+  async function handleCopy(btn) {
+    const isPassword = btn.dataset.copy === 'password';
+    const text = isPassword ? els.password.value : els.login.value;
+    if (!text) return;
+    const ok = await copyText(text, isPassword);
+    btn.classList.add('copied');
+    btn.textContent = ok ? 'Skopiowano ✓' : 'Błąd';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = 'Kopiuj';
+      if (selectedId) renderEditor();
+    }, 1500);
   }
 
   // --- Zdarzenia ---
@@ -444,6 +598,44 @@
   els.content.addEventListener('input', scheduleSave);
   els.back.addEventListener('click', closeNote);
   els.toggleLock.addEventListener('click', handleLockTap);
+  els.credsLock.addEventListener('click', handleCredsLockTap);
+  els.copyButtons.forEach((btn) => btn.addEventListener('click', () => handleCopy(btn)));
+  els.addCreds.addEventListener('click', () => {
+    flushSave();
+    store.addCredentials(selectedId);
+    renderEditor();
+    els.login.focus();
+  });
+  els.credsRemove.addEventListener('click', () => {
+    if (!confirm('Usunąć login i hasło z tej notatki? Poprzednie wartości zostaną w historii edycji.')) return;
+    flushSave();
+    store.removeCredentials(selectedId);
+    els.login.value = '';
+    els.password.value = '';
+    passwordRevealed = false;
+    renderEditor();
+  });
+  els.pwEye.addEventListener('click', () => {
+    passwordRevealed = !passwordRevealed;
+    renderEditor();
+  });
+  els.login.addEventListener('input', () => {
+    scheduleSave();
+    renderCredentials(store.get(selectedId));
+  });
+  els.password.addEventListener('input', () => {
+    scheduleSave();
+    renderCredentials(store.get(selectedId));
+  });
+  // Mgła znika na czas pisania hasła i wraca po wyjściu z pola.
+  els.password.addEventListener('focus', () => {
+    flushSave();
+    renderCredentials(store.get(selectedId));
+  });
+  els.password.addEventListener('blur', () => {
+    flushSave();
+    if (selectedId) renderCredentials(store.get(selectedId));
+  });
   els.showHistory.addEventListener('click', openHistory);
   els.historyBack.addEventListener('click', closeHistory);
   els.historyList.addEventListener('click', (e) => {
