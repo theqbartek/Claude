@@ -720,7 +720,7 @@
     const last = drag.rects[drag.rects.length - 1];
     let dy = contentY(clientY) - drag.startY;
     dy = Math.max(first.top - self.top, Math.min(last.top + last.height - (self.top + self.height), dy));
-    drag.item.style.transform = `translateY(${dy}px)`;
+    drag.item.style.transform = `translateY(${dy}px) scale(1.03)`; // nadal „uniesiona”
 
     const center = self.top + self.height / 2 + dy;
     let newIndex = drag.index;
