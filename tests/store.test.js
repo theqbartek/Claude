@@ -1,12 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {
-  createStore,
-  hashPassword,
-  LockedNoteError,
-  WrongPasswordError,
-  STORAGE_KEY,
-} = require('../js/store.js');
+const { createStore, LockedNoteError, STORAGE_KEY } = require('../js/store.js');
 
 function memoryStorage() {
   const data = {};
@@ -43,27 +37,15 @@ test('po odblokowaniu edycja znów działa', () => {
   assert.equal(store.get(note.id).title, 'Nowy');
 });
 
-test('blokada z hasłem wymaga poprawnego hasła', async () => {
-  const store = createStore(memoryStorage());
-  const note = store.create();
-  store.lock(note.id, await hashPassword('tajne'));
-
-  assert.throws(() => store.unlock(note.id), WrongPasswordError);
-  const wrong = await hashPassword('zle');
-  assert.throws(() => store.unlock(note.id, wrong), WrongPasswordError);
-  assert.equal(store.get(note.id).locked, true);
-
-  store.unlock(note.id, await hashPassword('tajne'));
-  assert.equal(store.get(note.id).locked, false);
-  assert.equal(store.get(note.id).passwordHash, null);
-});
-
-test('hasło nie jest zapisywane jawnym tekstem', async () => {
+test('odblokowanie usuwa pozostałości po hasłach ze starszej wersji', () => {
   const storage = memoryStorage();
+  storage.setItem(STORAGE_KEY, JSON.stringify([
+    { id: 'a', title: 'Stara', content: '', locked: true, passwordHash: 'abc', createdAt: 1, updatedAt: 1 },
+  ]));
   const store = createStore(storage);
-  const note = store.create();
-  store.lock(note.id, await hashPassword('tajne'));
-  assert.ok(!storage.getItem(STORAGE_KEY).includes('tajne'));
+  store.unlock('a');
+  assert.equal(store.get('a').locked, false);
+  assert.ok(!('passwordHash' in store.get('a')));
 });
 
 test('blokada przetrwa ponowne wczytanie', () => {

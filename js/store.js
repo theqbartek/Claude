@@ -14,24 +14,8 @@
     }
   }
 
-  class WrongPasswordError extends Error {
-    constructor(message = 'Nieprawidłowe hasło.') {
-      super(message);
-      this.name = 'WrongPasswordError';
-    }
-  }
-
   function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  }
-
-  // SHA-256 z hasła (hex). Hasło nigdy nie jest zapisywane jawnym tekstem.
-  async function hashPassword(password) {
-    const data = new TextEncoder().encode(password);
-    const digest = await root.crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
   }
 
   function createStore(storage, now = () => Date.now()) {
@@ -77,7 +61,6 @@
           title,
           content,
           locked: false,
-          passwordHash: null,
           createdAt: ts,
           updatedAt: ts,
         };
@@ -103,30 +86,25 @@
         save();
       },
 
-      // Blokuje edycję. Opcjonalny passwordHash wymusza podanie hasła przy odblokowaniu.
-      lock(id, passwordHash = null) {
+      // Blokuje edycję i usuwanie notatki.
+      lock(id) {
         const note = find(id);
         note.locked = true;
-        note.passwordHash = passwordHash || null;
         save();
         return { ...note };
       },
 
-      unlock(id, passwordHash = null) {
+      unlock(id) {
         const note = find(id);
-        if (!note.locked) return { ...note };
-        if (note.passwordHash && note.passwordHash !== passwordHash) {
-          throw new WrongPasswordError();
-        }
         note.locked = false;
-        note.passwordHash = null;
+        delete note.passwordHash; // pozostałość po starszej wersji z hasłami
         save();
         return { ...note };
       },
     };
   }
 
-  const api = { createStore, hashPassword, LockedNoteError, WrongPasswordError, STORAGE_KEY };
+  const api = { createStore, LockedNoteError, STORAGE_KEY };
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;

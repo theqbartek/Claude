@@ -46,11 +46,11 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
 
 - tworzenie, edycja (autozapis) i usuwanie notatek
 - wyszukiwanie po tytule i treści
-- **blokada notatki** – przycisk „🔒 Zablokuj”:
-  - zablokowanej notatki nie można edytować ani usunąć
-  - opcjonalne hasło wymagane do odblokowania (zapisywany jest tylko skrót SHA-256)
+- **blokada notatki** – przycisk z kłódką:
+  - jedno dotknięcie blokuje notatkę – nie można jej wtedy edytować ani usunąć
+  - odblokowanie: dotknij kłódki **3 razy** w krótkim odstępie (przycisk odlicza „Jeszcze 2×”, „Jeszcze 1×”)
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
-- układ dopasowany do telefonu: duże przyciski, przycisk „+”, panel blokady wysuwany od dołu
+- układ dopasowany do telefonu: duże przyciski, przycisk „+”
 - systemowy przycisk „wstecz” na Androidzie wraca z notatki do listy
 - działa offline (service worker), jasny/ciemny motyw zgodny z systemem
 
@@ -67,7 +67,7 @@ npm test
 
 - `index.html` – widok aplikacji
 - `css/style.css` – style
-- `js/store.js` – logika danych (notatki, blokowanie, hasła)
+- `js/store.js` – logika danych (notatki, blokowanie)
 - `js/app.js` – obsługa interfejsu
 - `manifest.webmanifest`, `sw.js`, `icons/` – instalacja PWA i tryb offline
 - `android/` – aplikacja na Androida (`MainActivity.java`, zasoby, skrypt `build.sh`)

@@ -195,32 +195,21 @@ body {
 .btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
 .btn-danger { color: var(--danger); }
 .btn-ghost { border-color: transparent; background: transparent; }
+.btn { touch-action: manipulation; } /* szybkie dotknięcia nie powiększają strony */
 
-/* --- Dialog --- */
-
-.dialog {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--panel);
-  color: var(--text);
-  padding: 20px;
-  width: min(400px, calc(100vw - 32px));
+/* Kłódka zablokowanej notatki i odliczanie dotknięć do odblokowania */
+#toggle-lock.is-locked {
+  background: var(--locked-bg);
+  border-color: var(--locked-border);
+  color: var(--locked-text);
+  user-select: none;
+  -webkit-user-select: none;
 }
-.dialog::backdrop { background: rgb(0 0 0 / 0.4); }
-.dialog h2 { margin: 0 0 8px; font-size: 1.15rem; }
-.dialog p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
-.dialog input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-  font-size: 16px;
+#toggle-lock.counting { animation: lock-shake 0.25s; font-weight: 600; }
+@keyframes lock-shake {
+  25% { transform: translateX(-3px) rotate(-3deg); }
+  75% { transform: translateX(3px) rotate(3deg); }
 }
-.dialog-error { color: var(--danger) !important; margin: 8px 0 0; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 /* --- Telefon --- */
 
@@ -281,14 +270,4 @@ body {
   .title-input { font-size: 1.6rem; }
   .content-input { font-size: 1.05rem; } /* >= 16px, bez auto-zoomu na iPhonie */
 
-  /* Dialog jako panel wysuwany od dołu */
-  .dialog {
-    margin: auto 0 0;
-    width: 100%;
-    max-width: 100%;
-    border-radius: 18px 18px 0 0;
-    border-bottom: none;
-    padding: 24px 20px calc(20px + var(--safe-bottom));
-  }
-  .dialog-actions .btn { flex: 1; min-height: 48px; font-size: 1rem; }
 }

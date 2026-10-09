@@ -44,7 +44,7 @@
           </div>
         </div>
         <div class="lock-banner" id="lock-banner" hidden>
-          🔒 Notatka zablokowana – edycja i usuwanie są wyłączone.
+          🔒 Notatka zablokowana. Dotknij kłódki <strong>3 razy</strong>, aby odblokować.
         </div>
         <input class="title-input" id="title" type="text" placeholder="Tytuł" aria-label="Tytuł notatki" enterkeyhint="next">
         <textarea class="content-input" id="content" placeholder="Zacznij pisać…" aria-label="Treść notatki"></textarea>
@@ -52,19 +52,6 @@
       </section>
     </main>
   </div>
-
-  <dialog class="dialog" id="lock-dialog">
-    <form method="dialog" id="lock-form">
-      <h2 id="lock-dialog-title"></h2>
-      <p id="lock-dialog-text"></p>
-      <input type="password" id="lock-password" autocomplete="off" enterkeyhint="done">
-      <p class="dialog-error" id="lock-error" hidden></p>
-      <div class="dialog-actions">
-        <button type="button" class="btn" id="lock-cancel">Anuluj</button>
-        <button type="submit" class="btn btn-primary" id="lock-confirm"></button>
-      </div>
-    </form>
-  </dialog>
 
   <script src="js/store.js"></script>
   <script src="js/app.js"></script>

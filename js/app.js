@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const { createStore, hashPassword, WrongPasswordError } = window.NotesStore;
+  const { createStore } = window.NotesStore;
   const store = createStore(window.localStorage);
 
   const $ = (id) => document.getElementById(id);
@@ -21,18 +21,16 @@
     banner: $('lock-banner'),
     title: $('title'),
     content: $('content'),
-    dialog: $('lock-dialog'),
-    form: $('lock-form'),
-    dialogTitle: $('lock-dialog-title'),
-    dialogText: $('lock-dialog-text'),
-    password: $('lock-password'),
-    error: $('lock-error'),
-    cancel: $('lock-cancel'),
-    confirm: $('lock-confirm'),
   };
+
+  // Odblokowanie wymaga kilku szybkich dotknięć kłódki – chroni przed przypadkowym odblokowaniem.
+  const UNLOCK_TAPS = 3;
+  const TAP_WINDOW_MS = 1500;
 
   let selectedId = null;
   let saveTimer = null;
+  let unlockTaps = 0;
+  let tapTimer = null;
 
   const dateFmt = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -83,9 +81,15 @@
     els.banner.hidden = !note.locked;
     els.deleteNote.disabled = note.locked;
     els.deleteNote.title = note.locked ? 'Odblokuj notatkę, aby ją usunąć' : 'Usuń notatkę';
-    els.toggleLock.textContent = note.locked ? '🔓 Odblokuj' : '🔒 Zablokuj';
+    els.toggleLock.classList.toggle('is-locked', note.locked);
+    els.toggleLock.classList.toggle('counting', unlockTaps > 0);
+    els.toggleLock.textContent = !note.locked
+      ? '🔓 Zablokuj'
+      : unlockTaps > 0
+        ? `🔒 Jeszcze ${UNLOCK_TAPS - unlockTaps}×`
+        : '🔒 Zablokowana';
     els.toggleLock.title = note.locked
-      ? note.passwordHash ? 'Odblokuj (wymaga hasła)' : 'Odblokuj edycję'
+      ? `Dotknij ${UNLOCK_TAPS} razy, aby odblokować`
       : 'Zablokuj możliwość edycji';
     els.status.textContent = 'Zmieniono: ' + dateFmt.format(note.updatedAt);
   }
@@ -97,6 +101,7 @@
 
   function select(id) {
     flushSave();
+    resetUnlockTaps();
     selectedId = id;
     els.title.blur();
     els.content.blur();
@@ -134,61 +139,46 @@
     render();
   }
 
-  // --- Okno dialogowe blokady ---
+  // --- Blokada ---
 
-  function openLockDialog(note) {
-    const locking = !note.locked;
-    els.error.hidden = true;
-    els.password.value = '';
-
-    if (locking) {
-      els.dialogTitle.textContent = 'Zablokuj notatkę';
-      els.dialogText.textContent =
-        'Zablokowanej notatki nie można edytować ani usunąć. Możesz ustawić hasło wymagane do odblokowania (opcjonalnie).';
-      els.password.placeholder = 'Hasło (opcjonalnie)';
-      els.confirm.textContent = 'Zablokuj';
-    } else {
-      els.dialogTitle.textContent = 'Odblokuj notatkę';
-      els.dialogText.textContent = 'Ta notatka jest chroniona hasłem. Podaj je, aby odblokować edycję.';
-      els.password.placeholder = 'Hasło';
-      els.confirm.textContent = 'Odblokuj';
-    }
-    els.dialog.dataset.mode = locking ? 'lock' : 'unlock';
-    els.dialog.showModal();
-    els.password.focus();
+  function vibrate(pattern) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
   }
 
-  async function handleDialogSubmit(e) {
-    e.preventDefault();
-    const pwd = els.password.value;
-    try {
-      if (els.dialog.dataset.mode === 'lock') {
-        store.lock(selectedId, pwd ? await hashPassword(pwd) : null);
-      } else {
-        store.unlock(selectedId, await hashPassword(pwd));
-      }
-      els.dialog.close();
-      render();
-    } catch (err) {
-      if (err instanceof WrongPasswordError) {
-        els.error.textContent = err.message;
-        els.error.hidden = false;
-        els.password.select();
-      } else {
-        throw err;
-      }
-    }
+  function resetUnlockTaps() {
+    clearTimeout(tapTimer);
+    tapTimer = null;
+    unlockTaps = 0;
   }
 
-  function toggleLock() {
+  // Zablokowanie: jedno dotknięcie. Odblokowanie: UNLOCK_TAPS dotknięć w krótkim odstępie.
+  function handleLockTap() {
     flushSave();
     const note = store.get(selectedId);
-    if (!note.locked || note.passwordHash) {
-      openLockDialog(note);
-    } else {
-      store.unlock(selectedId);
+
+    if (!note.locked) {
+      store.lock(selectedId);
+      vibrate(30);
       render();
+      return;
     }
+
+    unlockTaps++;
+    clearTimeout(tapTimer);
+    if (unlockTaps >= UNLOCK_TAPS) {
+      resetUnlockTaps();
+      store.unlock(selectedId);
+      vibrate([30, 60, 30]);
+      render();
+      return;
+    }
+
+    vibrate(15);
+    tapTimer = setTimeout(() => {
+      resetUnlockTaps();
+      renderEditor();
+    }, TAP_WINDOW_MS);
+    renderEditor();
   }
 
   // --- Zdarzenia ---
@@ -219,7 +209,7 @@
   els.title.addEventListener('input', scheduleSave);
   els.content.addEventListener('input', scheduleSave);
   els.back.addEventListener('click', closeNote);
-  els.toggleLock.addEventListener('click', toggleLock);
+  els.toggleLock.addEventListener('click', handleLockTap);
 
   els.deleteNote.addEventListener('click', () => {
     const note = store.get(selectedId);
@@ -231,11 +221,7 @@
     closeNote();
   });
 
-  els.form.addEventListener('submit', handleDialogSubmit);
-  els.cancel.addEventListener('click', () => els.dialog.close());
-
   window.addEventListener('popstate', (e) => {
-    if (els.dialog.open) els.dialog.close();
     const id = e.state && e.state.note;
     select(id && store.list().some((n) => n.id === id) ? id : null);
   });
@@ -257,10 +243,6 @@
   // handleBack zwraca true, jeśli przycisk „wstecz” został obsłużony w aplikacji.
   window.notatki = {
     handleBack() {
-      if (els.dialog.open) {
-        els.dialog.close();
-        return true;
-      }
       if (selectedId) {
         history.replaceState(null, '');
         select(null);
