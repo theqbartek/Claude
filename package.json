@@ -1,0 +1,9 @@
+{
+  "name": "notatki",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Prosta aplikacja do notatek z możliwością blokowania edycji",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

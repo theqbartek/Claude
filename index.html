@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notatki</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <header class="sidebar-header">
+        <h1>Notatki</h1>
+        <button class="btn btn-primary" id="new-note" title="Nowa notatka">+ Nowa</button>
+      </header>
+      <input class="search" id="search" type="search" placeholder="Szukaj…" aria-label="Szukaj notatek">
+      <ul class="note-list" id="note-list" aria-label="Lista notatek"></ul>
+      <p class="empty-list" id="empty-list" hidden>Brak notatek. Kliknij „+ Nowa”.</p>
+    </aside>
+
+    <main class="editor" id="editor">
+      <div class="placeholder" id="placeholder">
+        <p>Wybierz notatkę z listy lub utwórz nową.</p>
+      </div>
+
+      <section class="note-view" id="note-view" hidden>
+        <div class="toolbar">
+          <button class="btn btn-ghost back" id="back" title="Wróć do listy">←</button>
+          <span class="status" id="status"></span>
+          <div class="toolbar-actions">
+            <button class="btn" id="toggle-lock"></button>
+            <button class="btn btn-danger" id="delete-note">Usuń</button>
+          </div>
+        </div>
+        <div class="lock-banner" id="lock-banner" hidden>
+          🔒 Ta notatka jest zablokowana – edycja i usuwanie są wyłączone.
+        </div>
+        <input class="title-input" id="title" type="text" placeholder="Tytuł" aria-label="Tytuł notatki">
+        <textarea class="content-input" id="content" placeholder="Zacznij pisać…" aria-label="Treść notatki"></textarea>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="dialog" id="lock-dialog">
+    <form method="dialog" id="lock-form">
+      <h2 id="lock-dialog-title"></h2>
+      <p id="lock-dialog-text"></p>
+      <input type="password" id="lock-password" autocomplete="off">
+      <p class="dialog-error" id="lock-error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" id="lock-cancel">Anuluj</button>
+        <button type="submit" class="btn btn-primary" id="lock-confirm"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
