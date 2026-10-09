@@ -624,7 +624,6 @@
         ? `<p class="sheet-hint">🔒 Notatka jest zablokowana, więc nie można jej usunąć. Żeby ją odblokować, otwórz ją i dotknij kłódki ${UNLOCK_TAPS} razy.</p>`
         : '',
       menuButton('trash', '🗑️ Przenieś do kosza', { danger: true, disabled: note.locked }),
-      menuButton('cancel', 'Anuluj'),
     ].join('');
     els.noteMenu.hidden = false;
     const first = els.noteMenuActions.querySelector('button:not([disabled])');
@@ -642,7 +641,7 @@
   function runMenuAction(action) {
     const id = menuNoteId;
     closeNoteMenu();
-    if (!id || action === 'cancel') return;
+    if (!id) return;
     const note = store.get(id);
     if (action === 'pin') {
       if (note.pinnedAt) store.unpin(id);
