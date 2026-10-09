@@ -253,5 +253,23 @@
   // Po ponownym uruchomieniu zaczynamy od listy.
   if (history.state && history.state.note) history.replaceState(null, '');
 
+  // Wywoływane z natywnej aplikacji Android (android/src/pl/notatki/MainActivity.java).
+  // handleBack zwraca true, jeśli przycisk „wstecz” został obsłużony w aplikacji.
+  window.notatki = {
+    handleBack() {
+      if (els.dialog.open) {
+        els.dialog.close();
+        return true;
+      }
+      if (selectedId) {
+        history.replaceState(null, '');
+        select(null);
+        return true;
+      }
+      return false;
+    },
+    flush: flushSave,
+  };
+
   render();
 })();
