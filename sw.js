@@ -1,5 +1,5 @@
 // Service worker: zapisuje pliki aplikacji w pamięci telefonu, żeby działała bez internetu.
-const CACHE = 'notatki-v3';
+const CACHE = 'notatki-v4';
 const FILES = [
   './',
   'index.html',

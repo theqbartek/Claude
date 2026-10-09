@@ -50,6 +50,12 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
   - jedno dotknięcie blokuje notatkę – nie można jej wtedy edytować ani usunąć
   - odblokowanie: dotknij kłódki **3 razy** w krótkim odstępie (przycisk odlicza „Jeszcze 2×”, „Jeszcze 1×”)
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
+- **historia edycji** osobno dla każdej notatki (przycisk 🕘):
+  - każda sesja pisania to jedna wersja – nowa powstaje po wyjściu z notatki lub z aplikacji
+  - po dotknięciu wersji widać zmiany: dodane wiersze na zielono, usunięte na czerwono, zmianę tytułu
+  - dowolną starszą wersję można przywrócić (zapisuje się jako nowa wersja, nic nie ginie);
+    w zablokowanej notatce historię można tylko przeglądać
+  - przechowywane jest do 50 ostatnich wersji każdej notatki
 - układ dopasowany do telefonu: duże przyciski, przycisk „+”
 - systemowy przycisk „wstecz” na Androidzie wraca z notatki do listy
 - działa offline (service worker), jasny/ciemny motyw zgodny z systemem

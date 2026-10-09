@@ -39,6 +39,7 @@
         <div class="toolbar">
           <button class="btn btn-ghost back" id="back" aria-label="Wróć do listy">‹ Notatki</button>
           <div class="toolbar-actions">
+            <button class="btn" id="show-history" aria-label="Historia edycji" title="Historia edycji">🕘<span class="btn-label"> Historia</span></button>
             <button class="btn" id="toggle-lock"></button>
             <button class="btn btn-danger" id="delete-note" aria-label="Usuń notatkę">Usuń</button>
           </div>
@@ -49,6 +50,15 @@
         <input class="title-input" id="title" type="text" placeholder="Tytuł" aria-label="Tytuł notatki" enterkeyhint="next">
         <textarea class="content-input" id="content" placeholder="Zacznij pisać…" aria-label="Treść notatki"></textarea>
         <p class="status" id="status"></p>
+      </section>
+
+      <section class="history-view" id="history-view" hidden>
+        <div class="toolbar">
+          <button class="btn btn-ghost history-back" id="history-back" aria-label="Wróć do notatki">‹ Notatka</button>
+          <h2 class="history-heading">Historia edycji</h2>
+        </div>
+        <p class="history-note" id="history-note"></p>
+        <ol class="history-list" id="history-list"></ol>
       </section>
     </main>
   </div>
