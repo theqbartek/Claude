@@ -26,6 +26,20 @@
     historyBack: $('history-back'),
     historyNote: $('history-note'),
     historyList: $('history-list'),
+    notesPanel: $('notes-panel'),
+    trashPanel: $('trash-panel'),
+    openTrash: $('open-trash'),
+    closeTrash: $('close-trash'),
+    trashCount: $('trash-count'),
+    trashToolbar: $('trash-toolbar'),
+    trashSelectAll: $('trash-select-all'),
+    trashSelectedLabel: $('trash-selected-label'),
+    trashRestore: $('trash-restore'),
+    trashDelete: $('trash-delete'),
+    trashList: $('trash-list'),
+    trashEmpty: $('trash-empty'),
+    trashFooter: $('trash-footer'),
+    trashEmptyAll: $('trash-empty-all'),
   };
 
   // Odblokowanie wymaga kilku szybkich dotknięć kłódki – chroni przed przypadkowym odblokowaniem.
@@ -39,6 +53,8 @@
   let openVersion = null; // indeks rozwiniętej wersji w historii
   let statusMessage = null; // jednorazowy komunikat zamiast daty zmiany
   let tapTimer = null;
+  let trashOpen = false;
+  const trashSelected = new Set(); // id zaznaczonych notatek w koszu
 
   const dateFmt = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -108,9 +124,83 @@
     els.status.textContent = statusMessage || 'Zmieniono: ' + dateFmt.format(note.updatedAt);
   }
 
+  // Odmiana: „1 notatkę”, „2 notatki”, „5 notatek”.
+  function pluralNotes(n) {
+    const last = n % 10;
+    const lastTwo = n % 100;
+    if (n === 1) return '1 notatkę';
+    if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return n + ' notatki';
+    return n + ' notatek';
+  }
+
+  function renderTrash() {
+    const items = store.trash();
+    // Zaznaczenie może zawierać notatki, których już nie ma w koszu.
+    for (const id of trashSelected) {
+      if (!items.some((n) => n.id === id)) trashSelected.delete(id);
+    }
+
+    els.trashCount.hidden = items.length === 0;
+    els.trashCount.textContent = items.length > 99 ? '99+' : String(items.length);
+    els.openTrash.setAttribute('aria-label', items.length ? `Kosz (${items.length})` : 'Kosz');
+
+    els.notesPanel.hidden = trashOpen;
+    els.trashPanel.hidden = !trashOpen;
+    if (!trashOpen) return;
+
+    els.trashList.innerHTML = items
+      .map((n) => {
+        const selected = trashSelected.has(n.id);
+        const title = n.title.trim() || 'Bez tytułu';
+        const preview = n.content.trim().split('\n')[0] || 'Brak treści';
+        return `
+          <li class="note-item trash-item${selected ? ' selected' : ''}" data-id="${n.id}">
+            <input type="checkbox" aria-label="Zaznacz „${escapeHtml(title)}”"${selected ? ' checked' : ''}>
+            <div class="note-item-body">
+              <div class="note-item-title">${escapeHtml(title)}</div>
+              <div class="note-item-preview">${escapeHtml(preview)}</div>
+              <div class="note-item-date">Usunięto: ${dateFmt.format(n.trashedAt)}</div>
+            </div>
+          </li>`;
+      })
+      .join('');
+
+    const count = items.length;
+    const chosen = trashSelected.size;
+    els.trashEmpty.hidden = count > 0;
+    els.trashToolbar.hidden = count === 0;
+    els.trashFooter.hidden = count === 0;
+    els.trashSelectAll.checked = count > 0 && chosen === count;
+    els.trashSelectAll.indeterminate = chosen > 0 && chosen < count;
+    els.trashSelectedLabel.textContent = chosen ? `Zaznaczono ${chosen} z ${count}` : 'Zaznacz wszystkie';
+    els.trashRestore.disabled = chosen === 0;
+    els.trashDelete.disabled = chosen === 0;
+  }
+
   function render() {
     renderList();
+    renderTrash();
     renderEditor();
+  }
+
+  function openTrash() {
+    if (selectedId) {
+      history.replaceState(null, '');
+      select(null);
+    }
+    trashSelected.clear();
+    trashOpen = true;
+    history.pushState({ trash: true }, '');
+    render();
+  }
+
+  function closeTrash() {
+    if (history.state && history.state.trash) {
+      history.back();
+    } else {
+      trashOpen = false;
+      render();
+    }
   }
 
   function select(id) {
@@ -368,24 +458,67 @@
     }
   });
 
+  // „Usuń” przenosi notatkę do kosza – można ją stamtąd przywrócić, więc bez pytania.
   els.deleteNote.addEventListener('click', () => {
     const note = store.get(selectedId);
     if (note.locked) return;
-    if (!confirm(`Usunąć notatkę „${note.title.trim() || 'Bez tytułu'}”?`)) return;
-    clearTimeout(saveTimer);
-    store.remove(selectedId);
+    flushSave();
+    store.moveToTrash(selectedId);
     selectedId = null;
     closeNote();
+    render();
+  });
+
+  els.openTrash.addEventListener('click', openTrash);
+  els.closeTrash.addEventListener('click', closeTrash);
+
+  els.trashList.addEventListener('click', (e) => {
+    const item = e.target.closest('.trash-item');
+    if (!item) return;
+    const id = item.dataset.id;
+    if (trashSelected.has(id)) trashSelected.delete(id);
+    else trashSelected.add(id);
+    renderTrash();
+  });
+
+  els.trashSelectAll.addEventListener('change', () => {
+    const items = store.trash();
+    if (trashSelected.size === items.length) trashSelected.clear();
+    else items.forEach((n) => trashSelected.add(n.id));
+    renderTrash();
+  });
+
+  els.trashRestore.addEventListener('click', () => {
+    store.restoreFromTrash([...trashSelected]);
+    trashSelected.clear();
+    render();
+  });
+
+  els.trashDelete.addEventListener('click', () => {
+    const ids = [...trashSelected];
+    if (!ids.length) return;
+    if (!confirm(`Usunąć na zawsze ${pluralNotes(ids.length)}? Tego nie da się cofnąć.`)) return;
+    store.deleteForever(ids);
+    trashSelected.clear();
+    render();
+  });
+
+  els.trashEmptyAll.addEventListener('click', () => {
+    const count = store.trash().length;
+    if (!count) return;
+    if (!confirm(`Opróżnić kosz? Wszystkie notatki z kosza (${count}) zostaną usunięte na zawsze. Tego nie da się cofnąć.`)) return;
+    store.emptyTrash();
+    trashSelected.clear();
+    render();
   });
 
   window.addEventListener('popstate', (e) => {
     const id = e.state && e.state.note;
     const exists = id && store.list().some((n) => n.id === id);
     select(exists ? id : null);
-    if (exists && e.state.history) {
-      historyOpen = true;
-      renderEditor();
-    }
+    trashOpen = Boolean(e.state && e.state.trash);
+    if (exists && e.state.history) historyOpen = true;
+    render();
   });
 
   window.addEventListener('beforeunload', flushSave);
@@ -399,7 +532,7 @@
   }
 
   // Po ponownym uruchomieniu zaczynamy od listy.
-  if (history.state && history.state.note) history.replaceState(null, '');
+  if (history.state && (history.state.note || history.state.trash)) history.replaceState(null, '');
 
   // Zapisuje zmiany i kończy sesję pisania (wyjście z aplikacji = nowa wersja w historii).
   function flushAndSeal() {
@@ -415,6 +548,12 @@
         historyOpen = false;
         history.replaceState({ note: selectedId }, '');
         renderEditor();
+        return true;
+      }
+      if (trashOpen) {
+        trashOpen = false;
+        history.replaceState(null, '');
+        render();
         return true;
       }
       if (selectedId) {

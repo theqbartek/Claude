@@ -107,8 +107,20 @@
 
     return {
       // Notatki posortowane od ostatnio zmienionej.
+      // Notatki poza koszem, posortowane od ostatnio zmienionej.
       list() {
-        return notes.slice().sort((a, b) => b.updatedAt - a.updatedAt).map(clone);
+        return notes
+          .filter((n) => !n.trashedAt)
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .map(clone);
+      },
+
+      // Notatki w koszu, od ostatnio usuniętej. Leżą tam, dopóki użytkownik sam ich nie usunie.
+      trash() {
+        return notes
+          .filter((n) => n.trashedAt)
+          .sort((a, b) => b.trashedAt - a.trashedAt)
+          .map(clone);
       },
 
       get(id) {
@@ -199,10 +211,32 @@
         return clone(note);
       },
 
-      remove(id) {
+      // Przenosi notatkę do kosza (zablokowanej nie można usunąć).
+      moveToTrash(id) {
         const note = find(id);
         assertEditable(note);
-        notes = notes.filter((n) => n.id !== id);
+        note.trashedAt = now();
+        const last = Array.isArray(note.versions) && note.versions[note.versions.length - 1];
+        if (last) last.sealed = true;
+        save();
+      },
+
+      // Przywraca notatki z kosza na listę (razem z ich historią).
+      restoreFromTrash(ids) {
+        notes.forEach((n) => {
+          if (ids.includes(n.id) && n.trashedAt) delete n.trashedAt;
+        });
+        save();
+      },
+
+      // Usuwa na zawsze wybrane notatki z kosza. Notatek spoza kosza nie rusza.
+      deleteForever(ids) {
+        notes = notes.filter((n) => !(n.trashedAt && ids.includes(n.id)));
+        save();
+      },
+
+      emptyTrash() {
+        notes = notes.filter((n) => !n.trashedAt);
         save();
       },
 

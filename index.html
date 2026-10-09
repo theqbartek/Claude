@@ -18,16 +18,46 @@
 <body>
   <div class="app">
     <aside class="sidebar" id="sidebar">
-      <header class="sidebar-header">
-        <h1>Notatki</h1>
-        <button class="btn btn-primary new-note-top" id="new-note" title="Nowa notatka">+ Nowa</button>
-      </header>
-      <input class="search" id="search" type="search" placeholder="Szukaj…" aria-label="Szukaj notatek">
-      <div class="list-wrap">
-        <ul class="note-list" id="note-list" aria-label="Lista notatek"></ul>
-        <p class="empty-list" id="empty-list" hidden>Brak notatek.<br>Dotknij „+”, aby dodać pierwszą.</p>
+      <div class="panel" id="notes-panel">
+        <header class="sidebar-header">
+          <h1>Notatki</h1>
+          <div class="header-actions">
+            <button class="btn btn-ghost trash-open" id="open-trash" aria-label="Kosz" title="Kosz">🗑️<span class="badge" id="trash-count" hidden></span></button>
+            <button class="btn btn-primary new-note-top" id="new-note" title="Nowa notatka">+ Nowa</button>
+          </div>
+        </header>
+        <input class="search" id="search" type="search" placeholder="Szukaj…" aria-label="Szukaj notatek">
+        <div class="list-wrap">
+          <ul class="note-list" id="note-list" aria-label="Lista notatek"></ul>
+          <p class="empty-list" id="empty-list" hidden>Brak notatek.<br>Dotknij „+”, aby dodać pierwszą.</p>
+        </div>
+        <button class="fab" id="new-note-fab" aria-label="Nowa notatka">+</button>
       </div>
-      <button class="fab" id="new-note-fab" aria-label="Nowa notatka">+</button>
+
+      <div class="panel" id="trash-panel" hidden>
+        <header class="sidebar-header trash-header">
+          <button class="btn btn-ghost history-back" id="close-trash" aria-label="Wróć do notatek">‹ Notatki</button>
+          <h1>Kosz</h1>
+        </header>
+        <p class="trash-info">Notatki zostają w koszu, dopóki sam ich nie usuniesz.</p>
+        <div class="trash-toolbar" id="trash-toolbar">
+          <label class="select-all">
+            <input type="checkbox" id="trash-select-all">
+            <span id="trash-selected-label">Zaznacz wszystkie</span>
+          </label>
+          <div class="trash-actions">
+            <button class="btn" id="trash-restore" disabled>Przywróć</button>
+            <button class="btn btn-danger" id="trash-delete" disabled>Usuń na zawsze</button>
+          </div>
+        </div>
+        <div class="list-wrap">
+          <ul class="note-list trash-list" id="trash-list" aria-label="Notatki w koszu"></ul>
+          <p class="empty-list" id="trash-empty" hidden>Kosz jest pusty.</p>
+        </div>
+        <div class="trash-footer" id="trash-footer">
+          <button class="btn btn-danger btn-block" id="trash-empty-all">Opróżnij kosz</button>
+        </div>
+      </div>
     </aside>
 
     <main class="editor" id="editor">
@@ -41,7 +71,7 @@
           <div class="toolbar-actions">
             <button class="btn" id="show-history" aria-label="Historia edycji" title="Historia edycji">🕘<span class="btn-label"> Historia</span></button>
             <button class="btn" id="toggle-lock"></button>
-            <button class="btn btn-danger" id="delete-note" aria-label="Usuń notatkę">Usuń</button>
+            <button class="btn btn-danger" id="delete-note" aria-label="Przenieś do kosza">Usuń</button>
           </div>
         </div>
         <div class="lock-banner" id="lock-banner" hidden>

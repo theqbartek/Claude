@@ -24,7 +24,7 @@ test('zablokowanej notatki nie można edytować ani usunąć', () => {
   store.lock(note.id);
 
   assert.throws(() => store.update(note.id, { content: 'zmiana' }), LockedNoteError);
-  assert.throws(() => store.remove(note.id), LockedNoteError);
+  assert.throws(() => store.moveToTrash(note.id), LockedNoteError);
   assert.equal(store.get(note.id).content, 'nie ruszać');
 });
 

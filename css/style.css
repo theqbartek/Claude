@@ -127,6 +127,55 @@ body {
 
 .fab { display: none; }
 
+/* --- Panele paska bocznego (notatki / kosz) --- */
+
+.panel { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
+.panel[hidden] { display: none; }
+.header-actions { display: flex; align-items: center; gap: 4px; }
+
+.trash-open { position: relative; font-size: 1.15rem; padding: 6px 10px; }
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.badge[hidden] { display: none; }
+
+/* --- Kosz --- */
+
+.trash-header { justify-content: flex-start; gap: 8px; }
+.trash-info { color: var(--muted); font-size: 0.85rem; margin: 0 16px 10px; }
+.trash-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.trash-toolbar[hidden] { display: none; }
+.select-all { display: flex; align-items: center; gap: 8px; flex: 1; min-height: 40px; cursor: pointer; font-size: 0.9rem; }
+.trash-actions { display: flex; gap: 8px; }
+.trash-list { padding-top: 6px; }
+.trash-item { display: flex; align-items: flex-start; gap: 12px; }
+.trash-item .note-item-body { flex: 1; min-width: 0; }
+.trash-item.selected { background: var(--active); }
+input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); flex: none; cursor: pointer; }
+.trash-footer { padding: 12px 16px calc(12px + var(--safe-bottom)); border-top: 1px solid var(--border); }
+.trash-footer[hidden] { display: none; }
+.btn-block { width: 100%; }
+
 /* --- Edytor --- */
 
 .editor { display: flex; min-width: 0; min-height: 0; }
@@ -310,6 +359,11 @@ body {
   .sidebar-header { padding: 20px 16px 12px; }
   .sidebar-header h1 { font-size: 2rem; }
   .new-note-top { display: none; }
+  .trash-open { font-size: 1.4rem; }
+  .trash-header h1 { font-size: 1.5rem; }
+  .trash-list .note-item { padding: 14px 16px; }
+  .trash-actions .btn, .trash-footer .btn { min-height: 44px; }
+  #trash-panel .list-wrap { padding-bottom: 8px; }
 
   .list-wrap { padding: 0 0 calc(96px + var(--safe-bottom)); }
   .note-item {
