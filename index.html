@@ -22,6 +22,10 @@
         <header class="sidebar-header">
           <h1>Notatki</h1>
           <div class="header-actions">
+            <div class="view-toggle" role="group" aria-label="Widok listy notatek">
+              <button class="view-btn" id="view-list" type="button" aria-pressed="true" aria-label="Lista" title="Lista">☰</button>
+              <button class="view-btn" id="view-grid" type="button" aria-pressed="false" aria-label="Kafelki" title="Kafelki">▦</button>
+            </div>
             <button class="btn btn-ghost trash-open" id="open-trash" aria-label="Kosz" title="Kosz">🗑️<span class="badge" id="trash-count" hidden></span></button>
             <button class="btn btn-primary new-note-top" id="new-note" title="Nowa notatka">+ Nowa</button>
           </div>

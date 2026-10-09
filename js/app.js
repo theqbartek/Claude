@@ -23,6 +23,8 @@
     content: $('content'),
     showHistory: $('show-history'),
     togglePin: $('toggle-pin'),
+    viewList: $('view-list'),
+    viewGrid: $('view-grid'),
     noteMenu: $('note-menu'),
     noteMenuTitle: $('note-menu-title'),
     noteMenuActions: $('note-menu-actions'),
@@ -105,12 +107,38 @@
   const trashSelected = new Set(); // id zaznaczonych notatek w koszu
 
   const dateFmt = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'medium', timeStyle: 'short' });
+  const shortDateFmt = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short' });
 
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // --- Widok listy: lista albo kafelki (zapamiętywany na tym urządzeniu) ---
+
+  const VIEW_KEY = 'notatki.widok';
+  let gridView = false;
+  try {
+    gridView = window.localStorage.getItem(VIEW_KEY) === 'kafelki';
+  } catch {
+    gridView = false;
+  }
+
+  function setGridView(on) {
+    gridView = on;
+    try {
+      window.localStorage.setItem(VIEW_KEY, on ? 'kafelki' : 'lista');
+    } catch {
+      /* bez zapamiętania – widok działa do zamknięcia aplikacji */
+    }
+    renderList();
+  }
+
   function renderList() {
+    els.list.classList.toggle('grid', gridView);
+    els.app.classList.toggle('grid-view', gridView);
+    els.viewList.setAttribute('aria-pressed', String(!gridView));
+    els.viewGrid.setAttribute('aria-pressed', String(gridView));
+
     const q = els.search.value.trim().toLowerCase();
     const notes = store.list().filter(
       (n) =>
@@ -129,12 +157,13 @@
         if (pinnedCount && i === 0) label = '<li class="list-label" aria-hidden="true">📌 Przypięte</li>';
         else if (grouped && i === pinnedCount) label = '<li class="list-label" aria-hidden="true">Pozostałe</li>';
         const title = n.title.trim() || 'Bez tytułu';
-        const preview = n.content.trim().split('\n')[0] || 'Brak treści';
+        // Na liście pierwsza linijka treści; w kafelkach więcej (CSS ucina po 3 linijkach).
+        const preview = (gridView ? n.content.trim().slice(0, 300) : n.content.trim().split('\n')[0]) || 'Brak treści';
         return `${label}
-          <li class="note-item${n.id === selectedId ? ' active' : ''}${n.pinnedAt ? ' pinned' : ''}" data-id="${n.id}" tabindex="0">
+          <li class="note-item${n.id === selectedId ? ' active' : ''}${n.pinnedAt ? ' pinned' : ''}${n.locked ? ' locked' : ''}" data-id="${n.id}" tabindex="0">
             <div class="note-item-title">${n.pinnedAt ? '<span class="lock-icon" title="Przypięta">📌</span>' : ''}${n.locked ? '<span class="lock-icon" title="Zablokowana">🔒</span>' : ''}${n.login || n.password ? '<span class="lock-icon" title="Zawiera login i hasło">🔑</span>' : ''}${escapeHtml(title)}</div>
             <div class="note-item-preview">${escapeHtml(preview)}</div>
-            <div class="note-item-date">${dateFmt.format(n.updatedAt)}</div>
+            <div class="note-item-date">${(gridView ? shortDateFmt : dateFmt).format(n.updatedAt)}</div>
           </li>`;
       })
       .join('');
@@ -245,7 +274,8 @@
       .map((n) => {
         const selected = trashSelected.has(n.id);
         const title = n.title.trim() || 'Bez tytułu';
-        const preview = n.content.trim().split('\n')[0] || 'Brak treści';
+        // Na liście pierwsza linijka treści; w kafelkach więcej (CSS ucina po 3 linijkach).
+        const preview = (gridView ? n.content.trim().slice(0, 300) : n.content.trim().split('\n')[0]) || 'Brak treści';
         return `
           <li class="note-item trash-item${selected ? ' selected' : ''}" data-id="${n.id}">
             <input type="checkbox" aria-label="Zaznacz „${escapeHtml(title)}”"${selected ? ' checked' : ''}>
@@ -687,58 +717,82 @@
     return clientY - wrap.getBoundingClientRect().top + wrap.scrollTop;
   }
 
-  function startDrag(clientY) {
+  // Przeciąganie działa na „miejscach” (pozycjach notatek z jej grupy w chwili startu):
+  // w liście to kolejne wiersze, w kafelkach – pola siatki, także w drugiej kolumnie.
+  function startDrag(clientX, clientY) {
     const item = press.item;
     const pinned = item.classList.contains('pinned');
     // Przeciągać można tylko w obrębie swojej grupy – przypięte zawsze zostają na górze.
     const group = [...els.list.querySelectorAll('.note-item')].filter((el) => el.classList.contains('pinned') === pinned);
-    const rects = group.map((el) => ({ el, id: el.dataset.id, top: el.offsetTop, height: el.offsetHeight }));
-    const index = group.indexOf(item);
-    const gap = parseFloat(getComputedStyle(item).marginBottom) || 0;
+    const rects = group.map((el) => ({
+      el,
+      id: el.dataset.id,
+      left: el.offsetLeft,
+      top: el.offsetTop,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+    }));
     drag = {
       id: press.id,
       item,
       rects,
-      index,
-      newIndex: index,
-      startY: contentY(press.y), // od miejsca dotknięcia, żeby nie zgubić początku ruchu
+      index: group.indexOf(item),
+      newIndex: group.indexOf(item),
+      startX: press.x, // od miejsca dotknięcia, żeby nie zgubić początku ruchu
+      startY: contentY(press.y),
+      lastClientX: clientX,
       lastClientY: clientY,
-      slot: item.offsetHeight + gap,
+      bounds: {
+        left: Math.min(...rects.map((r) => r.left)),
+        top: Math.min(...rects.map((r) => r.top)),
+        right: Math.max(...rects.map((r) => r.left + r.width)),
+        bottom: Math.max(...rects.map((r) => r.top + r.height)),
+      },
       raf: 0,
     };
     clearPress();
     item.classList.add('dragging');
-    moveDrag(clientY);
     els.list.classList.add('reordering');
+    moveDrag(clientX, clientY);
     drag.raf = requestAnimationFrame(autoScroll);
   }
 
-  function moveDrag(clientY) {
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function moveDrag(clientX, clientY) {
+    drag.lastClientX = clientX;
     drag.lastClientY = clientY;
     const self = drag.rects[drag.index];
-    const first = drag.rects[0];
-    const last = drag.rects[drag.rects.length - 1];
-    let dy = contentY(clientY) - drag.startY;
-    dy = Math.max(first.top - self.top, Math.min(last.top + last.height - (self.top + self.height), dy));
-    drag.item.style.transform = `translateY(${dy}px) scale(1.03)`; // nadal „uniesiona”
+    const { bounds } = drag;
+    // Notatka nie wyjeżdża poza obszar swojej grupy.
+    const dx = clamp(clientX - drag.startX, bounds.left - self.left, bounds.right - (self.left + self.width));
+    const dy = clamp(contentY(clientY) - drag.startY, bounds.top - self.top, bounds.bottom - (self.top + self.height));
+    drag.item.style.transform = `translate(${dx}px, ${dy}px) scale(1.03)`; // nadal „uniesiona”
 
-    const center = self.top + self.height / 2 + dy;
-    let newIndex = drag.index;
-    drag.rects.forEach((other, i) => {
-      if (i === drag.index) return;
-      const mid = other.top + other.height / 2;
-      let shift = 0;
-      // >= i <=: przy dosunięciu do krawędzi grupy notatka zamienia się też ze skrajną.
-      if (i > drag.index && center >= mid) {
-        shift = -drag.slot;
-        newIndex++;
-      } else if (i < drag.index && center <= mid) {
-        shift = drag.slot;
-        newIndex--;
+    // Docelowe miejsce: to, którego środek jest najbliżej środka przeciąganej notatki.
+    const cx = self.left + self.width / 2 + dx;
+    const cy = self.top + self.height / 2 + dy;
+    let target = drag.index;
+    let best = Infinity;
+    drag.rects.forEach((slot, i) => {
+      const dist = (slot.left + slot.width / 2 - cx) ** 2 + (slot.top + slot.height / 2 - cy) ** 2;
+      if (dist < best) {
+        best = dist;
+        target = i;
       }
-      other.el.style.transform = shift ? `translateY(${shift}px)` : '';
     });
-    drag.newIndex = newIndex;
+
+    // Pozostałe notatki przesuwają się na swoje nowe miejsca.
+    const others = drag.rects.filter((_, i) => i !== drag.index);
+    others.forEach((other, k) => {
+      const slot = drag.rects[k < target ? k : k + 1];
+      const ox = slot.left - other.left;
+      const oy = slot.top - other.top;
+      other.el.style.transform = ox || oy ? `translate(${ox}px, ${oy}px)` : '';
+    });
+    drag.newIndex = target;
   }
 
   function endDrag() {
@@ -771,7 +825,7 @@
     if (step) {
       const before = wrap.scrollTop;
       wrap.scrollTop += step;
-      if (wrap.scrollTop !== before) moveDrag(y);
+      if (wrap.scrollTop !== before) moveDrag(drag.lastClientX, y);
     }
     drag.raf = requestAnimationFrame(autoScroll);
   }
@@ -792,7 +846,7 @@
 
   window.addEventListener('pointermove', (e) => {
     if (drag) {
-      moveDrag(e.clientY);
+      moveDrag(e.clientX, e.clientY);
       return;
     }
     if (!press) return;
@@ -800,7 +854,7 @@
     if (!press.armed) {
       if (dist > 10) clearPress(); // zwykłe przewijanie listy
     } else if (dist > 8 && canReorder()) {
-      startDrag(e.clientY);
+      startDrag(e.clientX, e.clientY);
     }
   });
 
@@ -889,6 +943,8 @@
   });
 
   els.search.addEventListener('input', renderList);
+  els.viewList.addEventListener('click', () => setGridView(false));
+  els.viewGrid.addEventListener('click', () => setGridView(true));
   els.title.addEventListener('input', scheduleSave);
   els.content.addEventListener('input', scheduleSave);
   els.back.addEventListener('click', closeNote);
