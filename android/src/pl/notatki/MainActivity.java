@@ -1,9 +1,13 @@
 package pl.notatki;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.PersistableBundle;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -35,6 +39,8 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(true);
         settings.setTextZoom(100);
 
+        webView.addJavascriptInterface(new Bridge(), "NotatkiAndroid");
+
         // WebChromeClient jest potrzebny, żeby działały okna confirm() (np. przy usuwaniu).
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
@@ -51,6 +57,31 @@ public class MainActivity extends Activity {
             webView.restoreState(savedInstanceState);
         } else {
             webView.loadUrl(START_URL);
+        }
+    }
+
+    /** Funkcje dostępne z JavaScriptu jako window.NotatkiAndroid. */
+    private class Bridge {
+        /**
+         * Kopiuje tekst do schowka. Hasło jest oznaczane jako poufne – Android 13+
+         * nie pokazuje wtedy jego treści w podglądzie schowka.
+         */
+        @JavascriptInterface
+        public void copy(final String text, final boolean sensitive) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText(sensitive ? "Hasło" : "Login", text);
+                    if (sensitive) {
+                        PersistableBundle extras = new PersistableBundle();
+                        // ClipDescription.EXTRA_IS_SENSITIVE (API 33); starsze wersje ignorują
+                        extras.putBoolean("android.content.extra.IS_SENSITIVE", true);
+                        clip.getDescription().setExtras(extras);
+                    }
+                    clipboard.setPrimaryClip(clip);
+                }
+            });
         }
     }
 

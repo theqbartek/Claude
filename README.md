@@ -50,6 +50,14 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
   - jedno dotknięcie blokuje notatkę – nie można jej wtedy edytować ani usunąć
   - odblokowanie: dotknij kłódki **3 razy** w krótkim odstępie (przycisk odlicza „Jeszcze 2×”, „Jeszcze 1×”)
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
+- **login i hasło** w notatce (przycisk „🔑 + Login i hasło”):
+  - osobne pola z przyciskiem „Kopiuj”, który pojawia się, gdy pole nie jest puste
+  - hasło jest zamazane mgłą; 👁 je odsłania, a podczas pisania mgła znika
+  - własna kłódka: jedno dotknięcie blokuje login i hasło, 3 szybkie dotknięcia odblokowują
+    (kopiowanie działa także po zablokowaniu; blokada całej notatki blokuje też te pola)
+  - w historii edycji zmiana hasła jest widoczna jako „zmienione”, bez pokazywania hasła
+  - w aplikacji Android skopiowane hasło jest oznaczone jako poufne (Android 13+ nie pokazuje go w podglądzie schowka)
+  - uwaga: dane nie są szyfrowane – to wygodny notatnik, nie menedżer haseł
 - **kosz** (ikona 🗑️ obok tytułu „Notatki”, z licznikiem):
   - „Usuń” przenosi notatkę do kosza – nic nie jest kasowane od razu
   - notatki leżą w koszu, dopóki sam ich nie usuniesz (nic nie znika automatycznie)

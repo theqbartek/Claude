@@ -97,8 +97,24 @@
       note.versions = [];
       // Notatki sprzed wprowadzenia historii: obecny stan staje się pierwszą wersją.
       if (note.title || note.content) {
-        note.versions.push({ ts: note.updatedAt, title: note.title, content: note.content, sealed: true });
+        note.versions.push({ ...snapshot(note, note.updatedAt), sealed: true });
       }
+    }
+
+    // Pola notatki zapisywane w historii (login i hasło też – żeby dało się je przywrócić).
+    function snapshot(note, ts) {
+      return {
+        ts,
+        title: note.title,
+        content: note.content,
+        login: note.login || '',
+        password: note.password || '',
+      };
+    }
+
+    function assertCredentialsEditable(note) {
+      assertEditable(note);
+      if (note.credentialsLocked) throw new LockedNoteError('Login i hasło są zablokowane.');
     }
 
     function trimVersions(note) {
@@ -143,26 +159,68 @@
         return clone(note);
       },
 
+      // Zmiana tytułu, treści, loginu lub hasła. Login i hasło mają osobną blokadę.
       update(id, changes) {
         const note = find(id);
         assertEditable(note);
-        const title = typeof changes.title === 'string' ? changes.title : note.title;
-        const content = typeof changes.content === 'string' ? changes.content : note.content;
-        if (title === note.title && content === note.content) return clone(note);
+        const next = {
+          title: typeof changes.title === 'string' ? changes.title : note.title,
+          content: typeof changes.content === 'string' ? changes.content : note.content,
+          login: typeof changes.login === 'string' ? changes.login : note.login || '',
+          password: typeof changes.password === 'string' ? changes.password : note.password || '',
+        };
+        const credentialsChanged = next.login !== (note.login || '') || next.password !== (note.password || '');
+        if (!credentialsChanged && next.title === note.title && next.content === note.content) return clone(note);
+        if (credentialsChanged) {
+          assertCredentialsEditable(note);
+          note.hasCredentials = true;
+        }
 
         ensureVersions(note);
         const ts = now();
-        note.title = title;
-        note.content = content;
+        Object.assign(note, next);
         note.updatedAt = ts;
 
         const last = note.versions[note.versions.length - 1];
         if (last && !last.sealed) {
-          Object.assign(last, { ts, title, content });
+          Object.assign(last, snapshot(note, ts));
         } else {
-          note.versions.push({ ts, title, content });
+          note.versions.push(snapshot(note, ts));
           trimVersions(note);
         }
+        save();
+        return clone(note);
+      },
+
+      // Pokazuje w notatce pola „Login” i „Hasło”.
+      addCredentials(id) {
+        const note = find(id);
+        assertEditable(note);
+        note.hasCredentials = true;
+        save();
+        return clone(note);
+      },
+
+      // Usuwa pola logowania z notatki (poprzednie wartości zostają w historii).
+      removeCredentials(id) {
+        const note = find(id);
+        assertCredentialsEditable(note);
+        if (note.login || note.password) this.update(id, { login: '', password: '' });
+        note.hasCredentials = false;
+        save();
+        return clone(note);
+      },
+
+      lockCredentials(id) {
+        const note = find(id);
+        note.credentialsLocked = true;
+        save();
+        return clone(note);
+      },
+
+      unlockCredentials(id) {
+        const note = find(id);
+        note.credentialsLocked = false;
         save();
         return clone(note);
       },
@@ -198,14 +256,14 @@
         if (last) last.sealed = true;
         note.title = version.title;
         note.content = version.content;
+        // Zablokowanych loginu i hasła przywracanie nie zmienia.
+        if (!note.credentialsLocked) {
+          note.login = version.login || '';
+          note.password = version.password || '';
+          if (note.login || note.password) note.hasCredentials = true;
+        }
         note.updatedAt = ts;
-        note.versions.push({
-          ts,
-          title: version.title,
-          content: version.content,
-          sealed: true,
-          restoredFrom: version.ts,
-        });
+        note.versions.push({ ...snapshot(note, ts), sealed: true, restoredFrom: version.ts });
         trimVersions(note);
         save();
         return clone(note);
