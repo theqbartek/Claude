@@ -22,6 +22,8 @@
     title: $('title'),
     content: $('content'),
     showHistory: $('show-history'),
+    togglePin: $('toggle-pin'),
+    pinLabel: $('pin-label'),
     historyView: $('history-view'),
     historyBack: $('history-back'),
     historyNote: $('history-note'),
@@ -114,13 +116,19 @@
         (n.login || '').toLowerCase().includes(q)
     );
 
+    // Przy przypiętych notatkach lista ma dwie grupy: „Przypięte” i „Pozostałe”.
+    const pinnedCount = notes.filter((n) => n.pinnedAt).length;
+    const grouped = pinnedCount > 0 && pinnedCount < notes.length;
     els.list.innerHTML = notes
-      .map((n) => {
+      .map((n, i) => {
+        let label = '';
+        if (pinnedCount && i === 0) label = '<li class="list-label" aria-hidden="true">📌 Przypięte</li>';
+        else if (grouped && i === pinnedCount) label = '<li class="list-label" aria-hidden="true">Pozostałe</li>';
         const title = n.title.trim() || 'Bez tytułu';
         const preview = n.content.trim().split('\n')[0] || 'Brak treści';
-        return `
-          <li class="note-item${n.id === selectedId ? ' active' : ''}" data-id="${n.id}" tabindex="0">
-            <div class="note-item-title">${n.locked ? '<span class="lock-icon" title="Zablokowana">🔒</span>' : ''}${n.login || n.password ? '<span class="lock-icon" title="Zawiera login i hasło">🔑</span>' : ''}${escapeHtml(title)}</div>
+        return `${label}
+          <li class="note-item${n.id === selectedId ? ' active' : ''}${n.pinnedAt ? ' pinned' : ''}" data-id="${n.id}" tabindex="0">
+            <div class="note-item-title">${n.pinnedAt ? '<span class="lock-icon" title="Przypięta">📌</span>' : ''}${n.locked ? '<span class="lock-icon" title="Zablokowana">🔒</span>' : ''}${n.login || n.password ? '<span class="lock-icon" title="Zawiera login i hasło">🔑</span>' : ''}${escapeHtml(title)}</div>
             <div class="note-item-preview">${escapeHtml(preview)}</div>
             <div class="note-item-date">${dateFmt.format(n.updatedAt)}</div>
           </li>`;
@@ -166,6 +174,12 @@
       ? `Dotknij ${UNLOCK_TAPS} razy, aby odblokować`
       : 'Zablokuj możliwość edycji';
     els.status.textContent = statusMessage || 'Zmieniono: ' + dateFmt.format(note.updatedAt);
+    const pinned = Boolean(note.pinnedAt);
+    els.togglePin.classList.toggle('on', pinned);
+    els.togglePin.setAttribute('aria-pressed', String(pinned));
+    els.togglePin.setAttribute('aria-label', pinned ? 'Odepnij notatkę' : 'Przypnij notatkę na górze listy');
+    els.togglePin.title = pinned ? 'Odepnij' : 'Przypnij na górze listy';
+    els.pinLabel.textContent = pinned ? ' Odepnij' : ' Przypnij';
     renderCredentials(note);
   }
 
@@ -610,6 +624,12 @@
   els.password.addEventListener('input', () => {
     scheduleSave();
     renderCredentials(store.get(selectedId));
+  });
+  els.togglePin.addEventListener('click', () => {
+    flushSave();
+    if (store.get(selectedId).pinnedAt) store.unpin(selectedId);
+    else store.pin(selectedId);
+    render();
   });
   els.showHistory.addEventListener('click', openHistory);
   els.historyBack.addEventListener('click', closeHistory);
