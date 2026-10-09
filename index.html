@@ -67,8 +67,9 @@
 
       <section class="note-view" id="note-view" hidden>
         <div class="toolbar">
-          <button class="btn btn-ghost back" id="back" aria-label="Wróć do listy">‹ Notatki</button>
+          <button class="btn btn-ghost back" id="back" aria-label="Wróć do listy">‹<span class="back-label"> Notatki</span></button>
           <div class="toolbar-actions">
+            <button class="btn pin-btn" id="toggle-pin" aria-pressed="false">📌<span class="btn-label" id="pin-label"> Przypnij</span></button>
             <button class="btn" id="show-history" aria-label="Historia edycji" title="Historia edycji">🕘<span class="btn-label"> Historia</span></button>
             <button class="btn" id="toggle-lock"></button>
             <button class="btn btn-danger" id="delete-note" aria-label="Przenieś do kosza">Usuń</button>

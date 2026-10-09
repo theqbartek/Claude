@@ -112,6 +112,15 @@ body {
   text-overflow: ellipsis;
 }
 .lock-icon { margin-right: 6px; font-size: 0.85em; }
+.list-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 12px 4px;
+}
+.pin-btn.on { background: var(--active); border-color: var(--accent); color: var(--accent); }
 
 .note-item-preview,
 .note-item-date {
@@ -400,6 +409,11 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-colo
 
 /* --- Telefon --- */
 
+@media (max-width: 440px) {
+  .back-label { display: none; }
+  .toolbar .back { font-size: 1.7rem; line-height: 1; padding: 4px 14px 8px; align-self: flex-start; min-height: 44px; }
+}
+
 @media (max-width: 700px) {
   .app { grid-template-columns: 1fr; }
   .sidebar { border-right: none; }
@@ -413,6 +427,7 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-colo
   .trash-open { font-size: 1.4rem; }
   .trash-header h1 { font-size: 1.5rem; }
   .trash-list .note-item { padding: 14px 16px; }
+  .list-label { padding: 14px 16px 4px; border-bottom: 1px solid var(--border); }
   .trash-actions .btn, .trash-footer .btn { min-height: 44px; }
   #trash-panel .list-wrap { padding-bottom: 8px; }
 
@@ -458,7 +473,9 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-colo
     font-size: 1.05rem;
     padding-left: 8px;
   }
-  .toolbar-actions .btn { min-height: 44px; }
+  .toolbar-actions .btn { min-height: 44px; padding: 8px 10px; }
+  /* Pasek notatki: gdy brakuje miejsca, przyciski przechodzą do drugiego rzędu zamiast wychodzić poza ekran. */
+  .toolbar-actions { flex: 1; min-width: 0; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .btn-label { display: none; } /* na telefonie sama ikona historii */
   .history-view { padding: calc(8px + var(--safe-top)) 16px calc(12px + var(--safe-bottom)); background: var(--panel); }
   .history-view .toolbar { margin: 0 -8px 8px; }

@@ -50,6 +50,8 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
   - jedno dotknięcie blokuje notatkę – nie można jej wtedy edytować ani usunąć
   - odblokowanie: dotknij kłódki **3 razy** w krótkim odstępie (przycisk odlicza „Jeszcze 2×”, „Jeszcze 1×”)
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
+- **przypinanie** (przycisk 📌 w notatce): przypięte notatki są zawsze na górze listy, w grupie
+  „Przypięte”, także po dodaniu nowych; ostatnio przypięta jest najwyżej, a edycja nie zmienia ich kolejności
 - **login i hasło** w notatce (przycisk „🔑 + Login i hasło”):
   - osobne pola z przyciskiem „Kopiuj”, który pojawia się, gdy pole nie jest puste
   - własna kłódka: jedno dotknięcie blokuje login i hasło, 3 szybkie dotknięcia odblokowują

@@ -123,12 +123,32 @@
 
     return {
       // Notatki posortowane od ostatnio zmienionej.
-      // Notatki poza koszem, posortowane od ostatnio zmienionej.
+      // Notatki poza koszem: najpierw przypięte (ostatnio przypięta na górze),
+      // potem pozostałe od ostatnio zmienionej.
       list() {
         return notes
           .filter((n) => !n.trashedAt)
-          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .sort((a, b) => {
+            if (Boolean(a.pinnedAt) !== Boolean(b.pinnedAt)) return a.pinnedAt ? -1 : 1;
+            if (a.pinnedAt) return b.pinnedAt - a.pinnedAt;
+            return b.updatedAt - a.updatedAt;
+          })
           .map(clone);
+      },
+
+      // Przypięcie nie zmienia treści, więc działa też dla zablokowanych notatek.
+      pin(id) {
+        const note = find(id);
+        note.pinnedAt = now();
+        save();
+        return clone(note);
+      },
+
+      unpin(id) {
+        const note = find(id);
+        delete note.pinnedAt;
+        save();
+        return clone(note);
       },
 
       // Notatki w koszu, od ostatnio usuniętej. Leżą tam, dopóki użytkownik sam ich nie usunie.
