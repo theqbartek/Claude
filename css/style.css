@@ -112,6 +112,90 @@ body {
   text-overflow: ellipsis;
 }
 .lock-icon { margin-right: 6px; font-size: 0.85em; }
+.note-item {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* bez systemowego menu przy przytrzymaniu */
+  transition: background-color 0.15s;
+}
+.note-item.pressing { background: var(--active); }
+
+/* --- Menu notatki (po przytrzymaniu) i komunikat --- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.4);
+  animation: fade-in 0.15s ease-out;
+}
+.sheet-backdrop[hidden] { display: none; }
+.sheet {
+  width: 100%;
+  max-width: 440px;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 18px 18px 0 0;
+  padding: 8px 12px calc(12px + var(--safe-bottom));
+  box-shadow: 0 -8px 30px rgb(0 0 0 / 0.2);
+  animation: sheet-up 0.18s ease-out;
+}
+.sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 4px auto 10px; }
+.sheet-title {
+  font-size: 1rem;
+  margin: 0 8px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-actions { display: grid; gap: 2px; }
+.sheet-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sheet-btn:hover:not(:disabled), .sheet-btn:focus-visible { background: var(--bg); outline: none; }
+.sheet-btn.danger { color: var(--danger); }
+.sheet-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sheet-btn[data-action="cancel"] { color: var(--muted); text-align: center; border-top: 1px solid var(--border); border-radius: 0; margin-top: 4px; }
+.sheet-hint { margin: 2px 12px 6px; font-size: 0.85rem; color: var(--locked-text); background: var(--locked-bg); border-radius: 10px; padding: 8px 10px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 30;
+  background: var(--text);
+  color: var(--panel);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+  animation: fade-in 0.15s ease-out;
+  pointer-events: none;
+}
+.toast[hidden] { display: none; }
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop, .sheet, .toast { animation: none; }
+}
+
 .list-label {
   font-size: 0.72rem;
   font-weight: 700;
@@ -427,7 +511,91 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-colo
   .trash-open { font-size: 1.4rem; }
   .trash-header h1 { font-size: 1.5rem; }
   .trash-list .note-item { padding: 14px 16px; }
-  .list-label { padding: 14px 16px 4px; border-bottom: 1px solid var(--border); }
+  .note-item {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* bez systemowego menu przy przytrzymaniu */
+  transition: background-color 0.15s;
+}
+.note-item.pressing { background: var(--active); }
+
+/* --- Menu notatki (po przytrzymaniu) i komunikat --- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.4);
+  animation: fade-in 0.15s ease-out;
+}
+.sheet-backdrop[hidden] { display: none; }
+.sheet {
+  width: 100%;
+  max-width: 440px;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 18px 18px 0 0;
+  padding: 8px 12px calc(12px + var(--safe-bottom));
+  box-shadow: 0 -8px 30px rgb(0 0 0 / 0.2);
+  animation: sheet-up 0.18s ease-out;
+}
+.sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 4px auto 10px; }
+.sheet-title {
+  font-size: 1rem;
+  margin: 0 8px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-actions { display: grid; gap: 2px; }
+.sheet-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sheet-btn:hover:not(:disabled), .sheet-btn:focus-visible { background: var(--bg); outline: none; }
+.sheet-btn.danger { color: var(--danger); }
+.sheet-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sheet-btn[data-action="cancel"] { color: var(--muted); text-align: center; border-top: 1px solid var(--border); border-radius: 0; margin-top: 4px; }
+.sheet-hint { margin: 2px 12px 6px; font-size: 0.85rem; color: var(--locked-text); background: var(--locked-bg); border-radius: 10px; padding: 8px 10px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 30;
+  background: var(--text);
+  color: var(--panel);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+  animation: fade-in 0.15s ease-out;
+  pointer-events: none;
+}
+.toast[hidden] { display: none; }
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop, .sheet, .toast { animation: none; }
+}
+
+.list-label { padding: 14px 16px 4px; border-bottom: 1px solid var(--border); }
   .trash-actions .btn, .trash-footer .btn { min-height: 44px; }
   #trash-panel .list-wrap { padding-bottom: 8px; }
 

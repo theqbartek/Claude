@@ -23,6 +23,10 @@
     content: $('content'),
     showHistory: $('show-history'),
     togglePin: $('toggle-pin'),
+    noteMenu: $('note-menu'),
+    noteMenuTitle: $('note-menu-title'),
+    noteMenuActions: $('note-menu-actions'),
+    toast: $('toast'),
     pinLabel: $('pin-label'),
     historyView: $('history-view'),
     historyBack: $('history-back'),
@@ -584,7 +588,140 @@
   els.newNote.addEventListener('click', newNote);
   els.newNoteFab.addEventListener('click', newNote);
 
+  // --- Menu po przytrzymaniu notatki na liście ---
+
+  const LONG_PRESS_MS = 500;
+  let pressTimer = null;
+  let pressStart = null;
+  let suppressClick = false; // kliknięcie po przytrzymaniu nie otwiera notatki
+  let menuNoteId = null;
+  let menuOpenedAt = 0;
+  let toastTimer = null;
+
+  function showToast(text) {
+    clearTimeout(toastTimer);
+    els.toast.textContent = text;
+    els.toast.hidden = false;
+    toastTimer = setTimeout(() => {
+      els.toast.hidden = true;
+    }, 1800);
+  }
+
+  function menuButton(action, label, { danger = false, disabled = false } = {}) {
+    return `<button class="sheet-btn${danger ? ' danger' : ''}" data-action="${action}"${disabled ? ' disabled' : ''}>${label}</button>`;
+  }
+
+  function openNoteMenu(id) {
+    const note = store.get(id);
+    menuNoteId = id;
+    menuOpenedAt = Date.now();
+    clearTimeout(toastTimer);
+    els.toast.hidden = true;
+    els.noteMenuTitle.textContent = note.title.trim() || 'Bez tytułu';
+    els.noteMenuActions.innerHTML = [
+      menuButton('pin', note.pinnedAt ? '📌 Odepnij' : '📌 Przypnij na górze'),
+      note.locked
+        ? `<p class="sheet-hint">🔒 Notatka jest zablokowana. Żeby ją odblokować, otwórz ją i dotknij kłódki ${UNLOCK_TAPS} razy.</p>`
+        : menuButton('lock', '🔒 Zablokuj'),
+      menuButton('history', '🕘 Historia edycji'),
+      menuButton('trash', '🗑️ Przenieś do kosza', { danger: true, disabled: note.locked }),
+      menuButton('cancel', 'Anuluj'),
+    ].join('');
+    els.noteMenu.hidden = false;
+    const first = els.noteMenuActions.querySelector('button:not([disabled])');
+    if (first) first.focus({ preventScroll: true });
+  }
+
+  function closeNoteMenu() {
+    if (els.noteMenu.hidden) return;
+    els.noteMenu.hidden = true;
+    const item = els.list.querySelector(`.note-item[data-id="${menuNoteId}"]`);
+    menuNoteId = null;
+    if (item) item.focus({ preventScroll: true });
+  }
+
+  function runMenuAction(action) {
+    const id = menuNoteId;
+    closeNoteMenu();
+    if (!id || action === 'cancel') return;
+    const note = store.get(id);
+    if (action === 'pin') {
+      if (note.pinnedAt) store.unpin(id);
+      else store.pin(id);
+      render();
+      showToast(note.pinnedAt ? 'Odpięto' : 'Przypięto na górze');
+    } else if (action === 'lock') {
+      if (id === selectedId) flushSave();
+      store.lock(id);
+      render();
+      showToast('Zablokowano');
+    } else if (action === 'history') {
+      openNote(id);
+      openHistory();
+    } else if (action === 'trash') {
+      if (note.locked) return;
+      if (id === selectedId) {
+        flushSave();
+        selectedId = null;
+        closeNote();
+      }
+      store.moveToTrash(id);
+      render();
+      showToast('Przeniesiono do kosza');
+    }
+  }
+
+  function cancelPress() {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+    pressStart = null;
+    els.list.querySelectorAll('.pressing').forEach((el) => el.classList.remove('pressing'));
+  }
+
+  els.list.addEventListener('pointerdown', (e) => {
+    const item = e.target.closest('.note-item');
+    suppressClick = false;
+    if (!item || e.button > 0) return;
+    pressStart = { x: e.clientX, y: e.clientY };
+    item.classList.add('pressing');
+    pressTimer = setTimeout(() => {
+      cancelPress();
+      suppressClick = true;
+      openNoteMenu(item.dataset.id);
+    }, LONG_PRESS_MS);
+  });
+  els.list.addEventListener('pointermove', (e) => {
+    if (pressStart && Math.hypot(e.clientX - pressStart.x, e.clientY - pressStart.y) > 10) cancelPress();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => els.list.addEventListener(type, cancelPress));
+  els.list.parentElement.addEventListener('scroll', cancelPress, { passive: true });
+  // Prawy przycisk myszy, klawisz menu i długie przytrzymanie w niektórych przeglądarkach.
+  els.list.addEventListener('contextmenu', (e) => {
+    const item = e.target.closest('.note-item');
+    if (!item) return;
+    e.preventDefault();
+    cancelPress();
+    suppressClick = true;
+    if (els.noteMenu.hidden) openNoteMenu(item.dataset.id);
+  });
+
+  els.noteMenuActions.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (btn && !btn.disabled) runMenuAction(btn.dataset.action);
+  });
+  els.noteMenu.addEventListener('click', (e) => {
+    // Puszczenie palca zaraz po otwarciu menu nie może go od razu zamknąć.
+    if (e.target === els.noteMenu && Date.now() - menuOpenedAt > 350) closeNoteMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !els.noteMenu.hidden) closeNoteMenu();
+  });
+
   els.list.addEventListener('click', (e) => {
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
     const item = e.target.closest('.note-item');
     if (item) openNote(item.dataset.id);
   });
@@ -700,6 +837,7 @@
   });
 
   window.addEventListener('popstate', (e) => {
+    closeNoteMenu();
     const id = e.state && e.state.note;
     const exists = id && store.list().some((n) => n.id === id);
     select(exists ? id : null);
@@ -731,6 +869,10 @@
   // handleBack zwraca true, jeśli przycisk „wstecz” został obsłużony w aplikacji.
   window.notatki = {
     handleBack() {
+      if (!els.noteMenu.hidden) {
+        closeNoteMenu();
+        return true;
+      }
       if (historyOpen) {
         historyOpen = false;
         history.replaceState({ note: selectedId }, '');
