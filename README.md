@@ -52,7 +52,6 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
 - **login i hasło** w notatce (przycisk „🔑 + Login i hasło”):
   - osobne pola z przyciskiem „Kopiuj”, który pojawia się, gdy pole nie jest puste
-  - hasło jest zamazane mgłą; 👁 je odsłania, a podczas pisania mgła znika
   - własna kłódka: jedno dotknięcie blokuje login i hasło, 3 szybkie dotknięcia odblokowują
     (kopiowanie działa także po zablokowaniu; blokada całej notatki blokuje też te pola)
   - w historii edycji zmiana hasła jest widoczna jako „zmienione”, bez pokazywania hasła

@@ -295,7 +295,6 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-colo
 
 .cred-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .cred-label { width: 52px; flex: none; color: var(--muted); font-size: 0.85rem; }
-.pw-wrap { position: relative; flex: 1; min-width: 0; display: flex; }
 .cred-input {
   flex: 1;
   min-width: 0;
@@ -311,24 +310,6 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-colo
 }
 .cred-input:focus { border-color: var(--accent); }
 .cred-input:read-only { background: transparent; border-style: dashed; }
-.pw-wrap .cred-input { padding-right: 40px; }
-/* Mgła na haśle */
-.cred-input.fogged { color: transparent; text-shadow: 0 0 9px var(--text); user-select: none; -webkit-user-select: none; }
-.eye-btn {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: none;
-  font-size: 1.05rem;
-  padding: 6px;
-  cursor: pointer;
-  opacity: 0.7;
-  touch-action: manipulation;
-}
-.eye-btn[hidden] { display: none; }
-.eye-btn.on { opacity: 1; }
 .copy-btn { flex: none; min-width: 92px; font-size: 0.85rem; }
 .copy-btn[hidden] { display: none; }
 .copy-btn.copied { color: var(--add-text); border-color: var(--add-text); }
