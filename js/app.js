@@ -621,9 +621,8 @@
     els.noteMenuActions.innerHTML = [
       menuButton('pin', note.pinnedAt ? '📌 Odepnij' : '📌 Przypnij na górze'),
       note.locked
-        ? `<p class="sheet-hint">🔒 Notatka jest zablokowana. Żeby ją odblokować, otwórz ją i dotknij kłódki ${UNLOCK_TAPS} razy.</p>`
-        : menuButton('lock', '🔒 Zablokuj'),
-      menuButton('history', '🕘 Historia edycji'),
+        ? `<p class="sheet-hint">🔒 Notatka jest zablokowana, więc nie można jej usunąć. Żeby ją odblokować, otwórz ją i dotknij kłódki ${UNLOCK_TAPS} razy.</p>`
+        : '',
       menuButton('trash', '🗑️ Przenieś do kosza', { danger: true, disabled: note.locked }),
       menuButton('cancel', 'Anuluj'),
     ].join('');
@@ -650,14 +649,6 @@
       else store.pin(id);
       render();
       showToast(note.pinnedAt ? 'Odpięto' : 'Przypięto na górze');
-    } else if (action === 'lock') {
-      if (id === selectedId) flushSave();
-      store.lock(id);
-      render();
-      showToast('Zablokowano');
-    } else if (action === 'history') {
-      openNote(id);
-      openHistory();
     } else if (action === 'trash') {
       if (note.locked) return;
       if (id === selectedId) {
