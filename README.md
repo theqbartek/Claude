@@ -52,8 +52,12 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
 - **menu notatki**: przytrzymaj notatkę na liście (na komputerze: prawy przycisk myszy), żeby bez otwierania
   jej przypiąć lub odpiąć albo przenieść do kosza (zablokowanej notatki nie można usunąć)
-- **przypinanie** (przycisk 📌 w notatce): przypięte notatki są zawsze na górze listy, w grupie
-  „Przypięte”, także po dodaniu nowych; ostatnio przypięta jest najwyżej, a edycja nie zmienia ich kolejności
+- **własna kolejność**: przytrzymaj notatkę i przesuń palcem, żeby przenieść ją w inne miejsce
+  (przy krawędzi lista sama się przewija; na komputerze także Alt + strzałka w górę/dół);
+  przypięte zawsze zostają nad pozostałymi, a edycja nie zmienia kolejności; nowa notatka trafia
+  na górę pozostałych
+- **przypinanie** (przycisk 📌 w notatce lub menu po przytrzymaniu): przypięte notatki są zawsze na górze
+  listy, w grupie „Przypięte”, także po dodaniu nowych; świeżo przypięta trafia na górę tej grupy
 - **login i hasło** w notatce (przycisk „🔑 + Login i hasło”):
   - osobne pola z przyciskiem „Kopiuj”, który pojawia się, gdy pole nie jest puste
   - własna kłódka: jedno dotknięcie blokuje login i hasło, 3 szybkie dotknięcia odblokowują
