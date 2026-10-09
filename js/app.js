@@ -45,7 +45,6 @@
     credsLock: $('creds-lock'),
     login: $('cred-login'),
     password: $('cred-password'),
-    pwEye: $('pw-eye'),
     credsHint: $('creds-hint'),
     credsRemove: $('creds-remove'),
     copyButtons: document.querySelectorAll('.copy-btn'),
@@ -93,7 +92,6 @@
 
   let selectedId = null;
   let saveTimer = null;
-  let passwordRevealed = false; // czy hasło jest odsłonięte (ikona 👁)
   let historyOpen = false;
   let openVersion = null; // indeks rozwiniętej wersji w historii
   let statusMessage = null; // jednorazowy komunikat zamiast daty zmiany
@@ -182,14 +180,6 @@
     if (!pending && document.activeElement !== els.password) els.password.value = note.password || '';
     els.login.readOnly = readOnly;
     els.password.readOnly = readOnly;
-
-    // Mgła na haśle: znika podczas pisania albo po dotknięciu 👁.
-    const editingPassword = document.activeElement === els.password && !readOnly;
-    const hasPassword = els.password.value !== '';
-    els.password.classList.toggle('fogged', hasPassword && !passwordRevealed && !editingPassword);
-    els.pwEye.hidden = !hasPassword;
-    els.pwEye.classList.toggle('on', passwordRevealed);
-    els.pwEye.setAttribute('aria-label', passwordRevealed ? 'Ukryj hasło' : 'Pokaż hasło');
 
     els.copyButtons.forEach((btn) => {
       if (btn.classList.contains('copied')) return;
@@ -292,7 +282,6 @@
     flushSave();
     noteTaps.reset();
     credsTaps.reset();
-    passwordRevealed = false;
     // Wyjście z notatki kończy sesję pisania – kolejne zmiany będą nową wersją w historii.
     if (selectedId && id !== selectedId) {
       store.sealHistory(selectedId);
@@ -612,11 +601,6 @@
     store.removeCredentials(selectedId);
     els.login.value = '';
     els.password.value = '';
-    passwordRevealed = false;
-    renderEditor();
-  });
-  els.pwEye.addEventListener('click', () => {
-    passwordRevealed = !passwordRevealed;
     renderEditor();
   });
   els.login.addEventListener('input', () => {
@@ -626,15 +610,6 @@
   els.password.addEventListener('input', () => {
     scheduleSave();
     renderCredentials(store.get(selectedId));
-  });
-  // Mgła znika na czas pisania hasła i wraca po wyjściu z pola.
-  els.password.addEventListener('focus', () => {
-    flushSave();
-    renderCredentials(store.get(selectedId));
-  });
-  els.password.addEventListener('blur', () => {
-    flushSave();
-    if (selectedId) renderCredentials(store.get(selectedId));
   });
   els.showHistory.addEventListener('click', openHistory);
   els.historyBack.addEventListener('click', closeHistory);
