@@ -52,6 +52,9 @@ Na komputerze wystarczy otworzyć `index.html` w przeglądarce.
   - zablokowane notatki mają ikonę 🔒 na liście, a blokada przetrwa odświeżenie strony
 - **menu notatki**: przytrzymaj notatkę na liście (na komputerze: prawy przycisk myszy), żeby bez otwierania
   jej przypiąć lub odpiąć albo przenieść do kosza (zablokowanej notatki nie można usunąć)
+- **widok listy lub kafelków** (przełącznik ☰ / ▦ obok kosza, zapamiętywany): kafelki w dwóch kolumnach,
+  równej wysokości, z tytułem (do 2 linijek) i treścią uciętą po 3 linijkach; przeciąganie działa także
+  w kafelkach
 - **własna kolejność**: przytrzymaj notatkę i przesuń palcem, żeby przenieść ją w inne miejsce
   (przy krawędzi lista sama się przewija; na komputerze także Alt + strzałka w górę/dół);
   przypięte zawsze zostają nad pozostałymi, a edycja nie zmienia kolejności; nowa notatka trafia
